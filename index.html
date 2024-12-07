@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Registro de Caídas</title>
+<style>
+        :root {
+            --primary-color: #2C3E50;
+            --secondary-color: #ECF0F1;
+            --accent-color: #3498DB;
+            --text-color: #2C3E50;
+            --background-color: #FFFFFF;
+            --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            font-family: var(--font-family);
+            color: var(--text-color);
+            background-color: var(--secondary-color);
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: #fff;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        h1, h2 {
+            margin: 0.5rem 0;
+        }
+
+        .top-actions {
+            margin: 1rem auto;
+            max-width: 1200px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--background-color);
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .top-actions .actions-left, .top-actions .actions-right {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .button {
+            padding: 0.5rem 1rem;
+            border: none;
+            background: var(--accent-color);
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .button:hover {
+            background: #2980B9;
+        }
+
+        .filters, .stats, .data-table-section, .add-record-section, .chart-section {
+            margin: 1rem auto;
+            max-width: 1200px;
+            background: var(--background-color);
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+        }
+
+        .filters h2, .stats h2, .data-table-section h2, .add-record-section h2, .chart-section h2 {
+            margin-bottom: 1rem;
+        }
+
+        .filter-group {
+            display: inline-block;
+            margin-right: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .filter-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 0.3rem;
+        }
+
+        select, .add-record-form input[type='text'], .add-record-form input[type='date'] {
+            padding: 0.3rem;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            min-width: 150px;
+        }
+
+        .stats-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: space-between;
+        }
+
+        .stat-card {
+            background: var(--secondary-color);
+            flex: 1 1 30%;
+            min-width: 200px;
+            text-align: center;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            display: block;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--secondary-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        thead {
+            background: var(--primary-color);
+            color: #fff;
+        }
+
+        thead th {
+            text-align: left;
+            padding: 0.5rem;
+        }
+
+        tbody td {
+            padding: 0.5rem;
+            border-bottom: 1px solid #ccc;
+            vertical-align: middle;
+        }
+
+        .delete-individual {
+            background: #E74C3C;
+            color: #fff;
+            padding: 0.3rem 0.6rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .delete-individual:hover {
+            background: #C0392B;
+        }
+
+        footer {
+            text-align: center;
+            padding: 1rem;
+            font-size: 0.9rem;
+            color: #888;
+            background: #fff;
+            margin-top: 2rem;
+        }
+
+        .add-record-section {
+            display: none;
+        }
+
+        .add-record-form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .add-record-form .input-group {
+            flex: 1 1 200px;
+            min-width: 200px;
+        }
+
+        .add-record-form label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 0.3rem;
+        }
+
+        .buttons-container {
+            margin-top: 1rem;
+            display: flex;
+            gap: 1rem;
+        }
+
+        .chart-section {
+            display: none;
+        }
+
+        .chart-form {
+            margin-bottom: 1rem;
+        }
+
+        .chart-container {
+            width: 100%;
+            border: 1px solid #ccc;
+            position: relative;
+            padding: 2rem;
+            overflow-x: auto;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+            display: flex;
+            align-items: flex-end;
+            border-left: 1px solid #333;
+            border-bottom: 1px solid #333;
+        }
+
+        .chart-bar-container {
+            display: inline-block;
+            text-align: center;
+            position: relative;
+            vertical-align: bottom;
+        }
+
+        .chart-bar-container .bar {
+            background: var(--accent-color);
+            border-radius: 4px 4px 0 0;
+            color: #fff;
+            font-size: 0.8rem;
+            font-weight: bold;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .chart-bar-container .bar-value {
+            margin-bottom: 5px;
+        }
+
+        /* Ajustamos las etiquetas del eje X en vertical y debajo de cada barra */
+        .chart-x-label {
+            font-size: 0.8rem;
+            position: absolute;
+            /* Colocamos debajo del eje X, más distancia */
+            top: calc(100% + 50px);
+            left: 50%;
+            transform: translateX(-50%) rotate(-90deg);
+            transform-origin: center top;
+            white-space: nowrap;
+        }
+
+        .y-grid {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+            pointer-events: none;
+        }
+
+        .y-grid-line {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: #ccc;
+        }
+
+        /* Invertimos el eje Y colocando flex-direction: column-reverse;
+           De este modo, el primer valor (0) se coloca abajo y el mayor arriba. */
+        .y-labels {
+            position: absolute;
+            left: -2.5rem;
+            top: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column-reverse; 
+            justify-content: space-between;
+            align-items: flex-end;
+            font-size: 0.8rem;
+            pointer-events: none;
+        }
+
+        @media (max-width: 768px) {
+            .filter-group {
+                display: block;
+                margin-bottom: 1rem;
+            }
+            .stats-grid {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .top-actions {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+<header>
+<h1>Registro de Caídas en la Residencia</h1>
+</header>
+<div class="top-actions">
+<div class="actions-left">
+<button class="button" id="btn-download-excel" onclick="downloadExcel()">Descargar Excel</button>
+<button class="button" id="btn-nuevo-registro">Nuevo Registro</button>
+<button class="button" id="btn-undo">Deshacer última acción</button>
+<button class="button" id="btn-delete-all">Eliminar todos los datos</button>
+<button class="button" id="btn-chart">Elegir gráfica</button>
+<button class="button" disabled="" id="btn-save" style="opacity: 0.5; cursor: not-allowed;">Guardar datos</button>
+</div>
+</div>
+<section class="add-record-section" id="add-record-section">
+<h2>Agregar Nuevo Registro</h2>
+<form class="add-record-form" id="add-record-form">
+<div class="input-group">
+<label for="new-residente">Residente:</label>
+<input id="new-residente" required="" type="text"/>
+</div>
+<div class="input-group">
+<label for="new-fecha">Fecha:</label>
+<input id="new-fecha" required="" type="date"/>
+</div>
+<div class="input-group">
+<label for="new-franja">Franja horaria:</label>
+<select id="new-franja" required=""></select>
+</div>
+<div class="input-group">
+<label for="new-lugar">Lugar:</label>
+<input id="new-lugar" list="lista-lugares" required=""/>
+<datalist id="lista-lugares"></datalist>
+</div>
+<div class="input-group">
+<label for="new-consecuencia">Consecuencias:</label>
+<input id="new-consecuencia" list="lista-consecuencias" required=""/>
+<datalist id="lista-consecuencias"></datalist>
+</div>
+<div class="input-group">
+<label for="new-sensor">Sensor:</label>
+<select id="new-sensor" required=""></select>
+</div>
+<div class="buttons-container">
+<button class="button" type="submit">Agregar registro</button>
+</div>
+</form>
+</section>
+<section class="chart-section" id="chart-section">
+<h2>Generar Gráfica</h2>
+<div class="chart-form">
+<label for="chart-type">Selecciona tipo de gráfica:</label>
+<select id="chart-type">
+<option value="residente">Caídas por residente</option>
+<option value="franja">Franja horaria de las caídas</option>
+<option value="lugar">Lugar de las caídas</option>
+<option value="consecuencia">Consecuencias de las caídas</option>
+</select>
+<button class="button" id="btn-generate-chart">Generar gráfica</button>
+</div>
+<div class="chart-container" id="chart-container"></div>
+</section>
+<section class="filters">
+<h2>Filtros</h2>
+<div class="filter-group">
+<label for="filter-residente">Residente:</label>
+<select id="filter-residente">
+<option value="">Todos</option>
+</select>
+</div>
+<div class="filter-group">
+<label for="filter-franja">Franja horaria:</label>
+<select id="filter-franja">
+<option value="">Todas</option>
+</select>
+</div>
+<div class="filter-group">
+<label for="filter-lugar">Lugar de la caída:</label>
+<select id="filter-lugar">
+<option value="">Todos</option>
+</select>
+</div>
+<div class="filter-group">
+<label for="filter-consecuencia">Consecuencias:</label>
+<select id="filter-consecuencia">
+<option value="">Todas</option>
+</select>
+</div>
+<div class="filter-group">
+<label for="filter-sensor">Sensor de movimiento:</label>
+<select id="filter-sensor">
+<option value="">Todos</option>
+</select>
+</div>
+<button class="button" id="btn-clear-filters">Limpiar Filtros</button>
+</section>
+
+<section class="stats" id="new-stats-section">
+<h2>Estadísticas</h2>
+<div class="stats-grid">
+<div class="stat-card">
+<span class="stat-number" id="stat-total">0</span>
+<span class="stat-label">Total de caídas</span>
+</div>
+</div>
+</section><section class="data-table-section">
+<h2>Listado de Caídas</h2>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>Residente</th>
+<th>Fecha</th>
+<th>Franja horaria</th>
+<th>Lugar</th>
+<th>Consecuencias</th>
+<th>Sensor</th>
+<th>Acciones</th>
+</tr>
+</thead>
+<tbody id="data-body">
+<!-- Filas generadas dinámicamente -->
+</tbody>
+</table>
+</div>
+</section>
+<footer>
+<p>Residencia - Registro de Caídas © 2024</p>
+</footer>
+<script>
+        // Datos originales y resto del código igual que en la versión anterior
+        // (Se mantiene la misma lógica, sólo se han ajustado las posiciones y orientaciones del texto en la gráfica)
+
+        const rawData = [
+["Elías Lara","4/5/2024","6 a 8","Al lado de la cama de la habitación","Sin consecuencias","Se oyó"],
+["Elías Lara","5/5/2024","4 a 6","Al lado de la cama de la habitación","Sin consecuencias","Se oyó"],
+["María Folgado","13/5/2024","14 a 16","En mitad de la habitación","TCE","No hay sensor"],
+["Carmen Yela","14/5/2024","10 a 12","Al lado de la cama de la habitación","Sin consecuencias","No hay sensor"],
+["Mercedes Reguera","14/5/2024","10 a 12","Salón de la primera planta","Sin consecuencias","No hay sensor"],
+["Juan Victorio Calvo","21/5/2024","16 a 18","Al lado de la cama de la habitación","Herida","No hay sensor"],
+["María Pérez","23/5/2024","8 a 10","Dentro del baño de la habitación","TCE","No hay sensor"],
+["Luisa Cruz","24/5/2024","18 a 20","Terraza","Sin consecuencias","No hay sensor"],
+["Francisco Ferreira","4/6/2024","22 a 00","Al lado de la cama de la habitación","Sin consecuencias","No hay sensor"],
+["Isabel Sanz","5/6/2024","16 a 18","Dentro del baño de la habitación","Herida","No hay sensor"],
+["Josefina Perdiguero","21/6/2024","16 a 18","Dentro del baño de la habitación","Sin consecuencias","No hay sensor"],
+["Luis Rodríguez","2/7/2024","2 a 4","Al lado de la cama de la habitación","Sin consecuencias","Se oyó"],
+["Mercedes Reguera","5/7/2024","4 a 6","Dentro del baño de la habitación","Fractura costal","Se oyó"],
+["María Mateos","9/7/2024","8 a 10","Dentro del baño de la habitación","Fractura de muñeca","No hay sensor"],
+["María Sancho","16/7/2024","2 a 4","Al lado de la cama de la habitación","Sin consecuencias","Se oyó"],
+["María Sancho","19/7/2024","0 a 2","Al lado de la cama de la habitación","Contusión","Se oyó"],
+["Martín Nieto","21/7/2024","12 a 14","Dentro del baño de la habitación","Herida","No hay sensor"],
+["Cayo Martín","22/7/2024","0 a 2","Al lado de la cama de la habitación","Sin consecuencias","Se oyó"],
+["Lucrecia García","24/7/2024","0 a 2","Pasillo","Sin consecuencias","No hay sensor"],
+["Valentín Vera","25/7/2024","16 a 18","Salón de la planta segunda","Sin consecuencias","No hay sensor"],
+["Alfredo Palazuelos","31/7/2024","16 a 18","Dentro del baño geriátrico","Contusión","No hay sensor"],
+["Alfredo Palazuelos","2/8/2024","2 a 4","Dentro del baño de la habitación","Contusión","Desconocido"],
+["Mariano Iglesias","16/8/2024","14 a 16","Dentro del baño geriátrico","Sin consecuencias","No hay sensor"],
+["Agustín Peinado","23/8/2024","4 a 6","Al lado de la cama de la habitación","TCE","Desconocido"],
+["Elías Lara","27/8/2024","18 a 20","A los pies de la cama de la habitación","Sin consecuencias","Desconocido"],
+["Josefina Perdiguero","27/8/2024","20 a 22","A los pies de la cama de la habitación","Sin consecuencias","Desconocido"],
+["Alfredo Palazuelos","11/9/2024","16 a 18","Recepción","Sin consecuencias","No hay sensor"],
+["María Sancho","21/9/2024","20 a 22","Dentro del baño de la habitación","Sin consecuencias","Desconocido"],
+["Elías Lara","22/9/2024","12 a 14","Comedor","Sin consecuencias","No hay sensor"],
+["Alfredo Palazuelos","23/9/2024","10 a 12","Dentro del ascensor","Sin consecuencias","No hay sensor"],
+["Luis Rodríguez","26/9/2024","2 a 4","Dentro del baño de la habitación","Sin consecuencias","Desconocido"],
+["Luciano González","26/9/2024","20 a 22","En mitad de la habitación","Herida","No hay sensor"],
+["Mariano Iglesias","28/9/2024","14 a 16","Dentro del baño geriátrico","Sin consecuencias","No hay sensor"],
+["Alberto González","1/10/2024","20 a 22","Al lado de la cama de la habitación","Sin consecuencias","Desconocido"],
+["Alberto González","4/10/2024","22 a 00","Puerta del baño de la habitación","Sin consecuencias","Desconocido"],
+["Alberto González","9/10/2024","22 a 00","Puerta del baño de la habitación","Sin consecuencias","Desconocido"],
+["Juan Victorio Calvo","10/10/2024","0 a 2","En mitad de la habitación","Sin consecuencias","Desconocido"],
+["Luciano González","13/10/2024","20 a 22","Dentro del baño de la habitación","Sin consecuencias","No hay sensor"],
+["Alberto González","13/10/2024","22 a 00","En mitad de la habitación","Sin consecuencias","Se oyó"],
+["Alberto González","17/10/2024","20 a 22","Al lado de la cama de la habitación","Sin consecuencias","Se oyó"],
+["Alberto González","17/10/2024","6 a 8","Salón de la primera planta","Sin consecuencias","No hay sensor"],
+["Ascensión Sáiz","17/10/2024","10 a 12","Salón de la segunda planta","Sin consecuencias","No hay sensor"],
+["Alfredo Palazuelos","18/10/2024","8 a 10","Puerta del baño de la habitación","Sin consecuencias","No hay sensor"],
+["Elias Lara","18/10/2024","10 a 12","Salón de la segunda planta","Sin consecuencias","No hay sensor"],
+["Juan Victorio Calvo","19/10/2024","22 a 00","A los pies de la cama de la habitación","Sin consecuencias","Se oyó"],
+["Agustín Peinado","19/10/2024","6 a 8","Al lado de la cama de la habitación","Sin consecuencias","Desconocido"],
+["Luciano González","19/10/2024","20 a 22","Al lado de la cama de la habitación","Sin consecuencias","No hay sensor"],
+["Juan Victorio Calvo","19/10/2024","8 a 10","En mitad de la habitación","Sin consecuencias","Desconocido"],
+["Juan Victorio Calvo","19/10/2024","10 a 12","Salón de la segunda planta","Sin consecuencias","No hay sensor"],
+["Juan Victorio Calvo","20/10/2024","16 a 18","Pasillo","Sin consecuencias","No hay sensor"],
+["Alfredo Palazuelos","21/10/2024","4 a 6","Puerta del baño de la habitación","Sin consecuencias","Se oyó"],
+["Mercedes Reguera","21/10/2024","0 a 2","Salón de la primera planta","Contusión","No hay sensor"],
+["Juan Victorio Calvo","26/10/2024","4 a 6","Dentro del baño de la habitación","Sin consecuencias","Se oyó"],
+["Andrea Gutierrez","26/10/2024","8 a 10","Puerta del baño de la habitación","Contusión","No hay sensor"],
+["Vicente Martínez","27/10/2024","14 a 16","Recepción","Sin consecuencias","No hay sensor"],
+["Agustín Peinado","2/11/2024","22 a 00","Pasillo","Sin consecuencias","Se oyó"],
+["Alfredo Palazuelos","3/11/2024","4 a 6","Al lado de la cama de la habitación","Sin consecuencias","Se oyó"],
+["Lucrecia García","3/11/2024","16 a 18","Sala de actividades","Sin consecuencias","No hay sensor"],
+["Antonio del Valle","4/11/2024","22 a 00","Dentro del baño de la habitación","Contusión","No hay sensor"],
+["María Sancho","7/11/2024","2 a 4","Dentro del baño de la habitación","Sin consecuencias","Sonó el sensor"],
+["Alberto González","7/11/2024","16 a 18","Planta primera","Sin consecuencias","No hay sensor"],
+["Martín Nieto","9/11/2024","14 a 16","Al lado de la cama de la habitación","Sin consecuencias","Se oyó"],
+["Martín Nieto","10/11/2024","14 a 16","Al lado de la cama de la habitación","Sin consecuencias","Se oyó"],
+["Francisca Blanco","13/11/2024","10 a 12","Dentro del baño de la habitación","Herida","No hay sensor"],
+["Manuela Vicente","17/11/2024","14 a 16","Al lado de la cama de la habitación","Sin consecuencias","No hay sensor"],
+["Alfredo Palazuelos","21/11/2024","10 a 12","Recepción","Sin consecuencias","No hay sensor"],
+["Martín Nieto","22/11/2024","16 a 18","Salón de la segunda planta","Sin consecuencias","No hay sensor"],
+["Mercedes Reguera","28/11/2024","22 a 00","A los pies de la cama de la habitación","Sin consecuencias","Se oyó"]
+        ];
+
+        function convertDate(dmy) {
+            const [day,month,year] = dmy.split("/");
+            return `${year}-${month.padStart(2,"0")}-${day.padStart(2,"0")}`;
+        }
+
+        let storedData = localStorage.getItem("fallData");
+        let data;
+        if(storedData) {
+            data = JSON.parse(storedData);
+        } else {
+            data = rawData.map((r,i)=>({
+                id: i+1,
+                residente: r[0],
+                fecha: convertDate(r[1]),
+                franja: r[2],
+                lugar: r[3],
+                consecuencia: r[4],
+                sensor: r[5]
+            }));
+            saveData();
+        }
+
+        const tbody = document.getElementById("data-body");
+        const filterResidente = document.getElementById("filter-residente");
+        const filterFranja = document.getElementById("filter-franja");
+        const filterLugar = document.getElementById("filter-lugar");
+        const filterConsecuencia = document.getElementById("filter-consecuencia");
+        const filterSensor = document.getElementById("filter-sensor");
+        const btnClear = document.getElementById("btn-clear-filters");
+        const btnNuevoRegistro = document.getElementById("btn-nuevo-registro");
+        const addRecordSection = document.getElementById("add-record-section");
+        const addRecordForm = document.getElementById("add-record-form");
+        const btnDeleteAll = document.getElementById("btn-delete-all");
+        const btnChart = document.getElementById("btn-chart");
+        const chartSection = document.getElementById("chart-section");
+        const chartType = document.getElementById("chart-type");
+        const btnGenerateChart = document.getElementById("btn-generate-chart");
+        const chartContainer = document.getElementById("chart-container");
+        const btnSave = document.getElementById("btn-save");
+        const btnUndo = document.getElementById("btn-undo");
+
+        // const statTotal = null;
+        // const statHeridas = null;
+        // const statSensor = null;
+
+        const newResidente = document.getElementById("new-residente");
+        const newFecha = document.getElementById("new-fecha");
+        const newFranja = document.getElementById("new-franja");
+        const newLugar = document.getElementById("new-lugar");
+        const listaLugares = document.getElementById("lista-lugares");
+        const newConsecuencia = document.getElementById("new-consecuencia");
+        const listaConsecuencias = document.getElementById("lista-consecuencias");
+        const newSensor = document.getElementById("new-sensor");
+
+        const actionStack = [];
+
+        function saveData() {
+            localStorage.setItem("fallData", JSON.stringify(data));
+        }
+
+        function uniqueValues(field) {
+            return [...new Set(data.map(d => d[field]))].sort();
+        }
+
+        function populateFilters() {
+            setOptionsFromData(filterResidente, "residente", true);
+            setOptionsFromData(filterFranja, "franja", true);
+            setOptionsFromData(filterLugar, "lugar", true);
+            setOptionsFromData(filterConsecuencia, "consecuencia", true);
+            setOptionsFromData(filterSensor, "sensor", true);
+        }
+
+        function populateAddRecordForm() {
+            setOptionsFromData(newFranja, "franja");
+            setOptionsFromData(newSensor, "sensor");
+
+            populateDatalist(listaLugares, "lugar");
+            populateDatalist(listaConsecuencias, "consecuencia");
+        }
+
+        function setOptionsFromData(selectElem, field, includeEmpty=false) {
+            if(!selectElem) return;
+            const valSet = uniqueValues(field);
+            selectElem.innerHTML = "";
+            if (includeEmpty) {
+                const opt = document.createElement("option");
+                opt.value = "";
+                opt.textContent = (field === "residente")?"Todos":"Todas";
+                selectElem.appendChild(opt);
+            }
+            valSet.forEach(v => {
+                const opt = document.createElement("option");
+                opt.value = v;
+                opt.textContent = v;
+                selectElem.appendChild(opt);
+            });
+        }
+
+        function populateDatalist(datalistElem, field) {
+            if(!datalistElem) return;
+            const valSet = uniqueValues(field);
+            datalistElem.innerHTML = "";
+            valSet.forEach(v => {
+                const opt = document.createElement("option");
+                opt.value = v;
+                datalistElem.appendChild(opt);
+            });
+        }
+
+        function getFilteredData() {
+            let filtered = [...data];
+            const rVal = filterResidente.value;
+            const fVal = filterFranja.value;
+            const lVal = filterLugar.value;
+            const cVal = filterConsecuencia.value;
+            const sVal = filterSensor.value;
+
+            if (rVal) filtered = filtered.filter(d => d.residente === rVal);
+            if (fVal) filtered = filtered.filter(d => d.franja === fVal);
+            if (lVal) filtered = filtered.filter(d => d.lugar === lVal);
+            if (cVal) filtered = filtered.filter(d => d.consecuencia === cVal);
+            if (sVal) filtered = filtered.filter(d => d.sensor === sVal);
+
+            return filtered;
+        }
+
+        function renderTable() {
+            const filtered = getFilteredData();
+            tbody.innerHTML = "";
+            filtered.forEach(d => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${d.residente}</td>
+                    <td>${d.fecha}</td>
+                    <td>${d.franja}</td>
+                    <td>${d.lugar}</td>
+                    <td>${d.consecuencia}</td>
+                    <td>${d.sensor}</td>
+                    <td><button class="delete-individual" data-id="${d.id}">Eliminar</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+            updateStats(filtered);
+            tbody.querySelectorAll(".delete-individual").forEach(btn => {
+                btn.addEventListener("click", (e) => {
+                    const id = parseInt(e.target.getAttribute("data-id"));
+                    const record = data.find(item => item.id===id);
+                    actionStack.push({type:"delete", record: record});
+                    data = data.filter(d => d.id !== id);
+                    saveData();
+                    renderTable();
+                    populateFilters();
+                    populateAddRecordForm();
+                });
+            });
+        }
+
+        function updateStats(dataSet) {
+            // statTotal.textContent = dataSet.length; // Elemento no disponible
+            const heridasCount = dataSet.filter(d => {
+                const c = d.consecuencia.toLowerCase();
+                return c.includes("herida") || c.includes("contusión") || c.includes("tce") || c.includes("fractura");
+            }).length;
+            // statHeridas.textContent = heridasCount; // Elemento no disponible
+
+            const sensorCount = dataSet.filter(d => {
+                const s = d.sensor.toLowerCase();
+                return s.includes("se oyó") || s.includes("sonó");
+            }).length;
+            // statSensor.textContent = sensorCount; // Elemento no disponible
+        }
+
+        btnClear.addEventListener("click", () => {
+            filterResidente.value = "";
+            filterFranja.value = "";
+            filterLugar.value = "";
+            filterConsecuencia.value = "";
+            filterSensor.value = "";
+            renderTable();
+        });
+
+        [filterResidente, filterFranja, filterLugar, filterConsecuencia, filterSensor].forEach(el => {
+            el.addEventListener("change", renderTable);
+        });
+
+        btnNuevoRegistro.addEventListener("click", () => {
+            addRecordSection.style.display = (addRecordSection.style.display === "none" || addRecordSection.style.display==="") ? "block" : "none";
+        });
+
+        addRecordForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const residente = newResidente.value.trim();
+            const fecha = newFecha.value;
+            const franja = newFranja.value.trim();
+            const lugar = newLugar.value.trim();
+            const consecuencia = newConsecuencia.value.trim();
+            const sensor = newSensor.value.trim();
+
+            if(residente && fecha && franja && lugar && consecuencia && sensor) {
+                const newId = data.length > 0 ? Math.max(...data.map(d=>d.id))+1 : 1;
+                const newRecord = {id:newId, residente, fecha, franja, lugar, consecuencia, sensor};
+                data.push(newRecord);
+                actionStack.push({type:"add", record:newRecord});
+                saveData();
+                populateFilters();
+                populateAddRecordForm();
+                renderTable();
+                addRecordForm.reset();
+            }
+        });
+
+        btnDeleteAll.addEventListener("click", () => {
+            data = [];
+            saveData();
+            renderTable();
+            populateFilters();
+            populateAddRecordForm();
+        });
+
+        btnChart.addEventListener("click", () => {
+            chartSection.style.display = (chartSection.style.display === "none" || chartSection.style.display==="") ? "block" : "none";
+        });
+
+        btnGenerateChart.addEventListener("click", () => {
+            const type = chartType.value;
+            generateChart(type);
+        });
+
+        function generateChart(type) {
+            const filtered = getFilteredData();
+            let field = "";
+            switch(type) {
+                case "residente":
+                    field = "residente"; break;
+                case "franja":
+                    field = "franja"; break;
+                case "lugar":
+                    field = "lugar"; break;
+                case "consecuencia":
+                    field = "consecuencia"; break;
+            }
+
+            const counts = {};
+            filtered.forEach(d=>{
+                counts[d[field]] = (counts[d[field]]||0) + 1;
+            });
+
+            chartContainer.innerHTML = "";
+            if(Object.keys(counts).length===0) {
+                chartContainer.textContent = "No hay datos para mostrar.";
+                return;
+            }
+
+            const maxVal = Math.max(...Object.values(counts));
+            const chartHeight = 300;
+            // Mayor separación entre barras
+            const barWidth = 30;
+            const gap = 20;
+            const categories = Object.keys(counts);
+            const numBars = categories.length;
+            const totalWidth = numBars*(barWidth+gap)+50;
+            const scale = chartHeight / maxVal;
+
+            const yGrid = document.createElement("div");
+            yGrid.className = "y-grid";
+            
+            const yLabels = document.createElement("div");
+            yLabels.className = "y-labels";
+            const numLabels = 5;
+            yLabels.style.setProperty('--num-labels', numLabels);
+
+            // Insertamos valores de 0 a max en orden ascendente
+            for (let i = 0; i <= numLabels; i++) {
+                const valLabel = document.createElement("div");
+                const val = Math.round((maxVal/numLabels)*i);
+                valLabel.textContent = val;
+                yLabels.appendChild(valLabel);
+            }
+
+            for (let i = 1; i <= numLabels; i++) {
+                const line = document.createElement("div");
+                line.className = "y-grid-line";
+                const yPos = chartHeight - (chartHeight/numLabels)*i;
+                line.style.top = yPos+"px";
+                yGrid.appendChild(line);
+            }
+
+            const chartWrapper = document.createElement("div");
+            chartWrapper.className = "chart-wrapper";
+            chartWrapper.style.width = (totalWidth+50)+"px";
+            chartWrapper.appendChild(yGrid);
+            chartWrapper.appendChild(yLabels);
+
+            categories.forEach((cat, index) => {
+                const val = counts[cat];
+                const barContainer = document.createElement("div");
+                barContainer.className = "chart-bar-container";
+                barContainer.style.width = barWidth+"px";
+                barContainer.style.marginRight = gap+"px";
+                barContainer.style.height = (chartHeight)+"px";
+                barContainer.style.position = "relative";
+
+                const bar = document.createElement("div");
+                bar.className = "bar";
+                const barHeight = val*scale;
+                bar.style.height = barHeight+"px";
+                bar.style.width = barWidth+"px";
+                bar.style.position = "absolute";
+                bar.style.bottom = "0";
+                const valueSpan = document.createElement("div");
+                valueSpan.className = "bar-value";
+                valueSpan.textContent = val;
+                bar.appendChild(valueSpan);
+                barContainer.appendChild(bar);
+
+                const label = document.createElement("div");
+                label.className = "chart-x-label";
+                label.textContent = cat;
+                barContainer.appendChild(label);
+
+                chartWrapper.appendChild(barContainer);
+            });
+
+            chartContainer.appendChild(chartWrapper);
+        }
+
+        btnSave.addEventListener("click", () => {
+            alert("Datos guardados en el navegador (LocalStorage). Se mantendrán al volver a abrir el archivo.");
+        });
+
+        btnUndo.addEventListener("click", () => {
+            const lastAction = actionStack.pop();
+            if(!lastAction) return; 
+            if(lastAction.type === "add") {
+                data = data.filter(d => d.id !== lastAction.record.id);
+                saveData();
+                renderTable();
+                populateFilters();
+                populateAddRecordForm();
+            } else if(lastAction.type === "delete") {
+                data.push(lastAction.record);
+                saveData();
+                renderTable();
+                populateFilters();
+                populateAddRecordForm();
+            }
+        });
+
+        // Inicializar
+        populateFilters();
+        populateAddRecordForm();
+        renderTable();
+    
+        function updateNewStats(dataSet) {
+            const statTotal = document.getElementById("stat-total");
+            if (statTotal) {
+                statTotal.textContent = dataSet.length;
+            }
+        }
+        
+        // Integrar la nueva lógica en los puntos clave
+        renderTable = (function(originalRenderTable) {
+            return function() {
+                originalRenderTable();
+                updateNewStats(getFilteredData());
+            };
+        })(renderTable);
+    </script>
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore-compat.js"></script>
+<script>
+    // Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyBVr71pBUEj_L_wgPDPU-Vs99lsF58M3OE",
+        authDomain: "registro-de-caidas.firebaseapp.com",
+        projectId: "registro-de-caidas",
+        storageBucket: "registro-de-caidas.firebasestorage.app",
+        messagingSenderId: "734892587342",
+        appId: "1:734892587342:web:340468d5bde406e79d861f",
+        measurementId: "G-YNT9E730YT"
+    };
+
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    console.log("Firebase inicializado correctamente.", app);
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore.js"></script>
+<script>
+    // Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyBVr71pBUEj_L_wgPDPU-Vs99lsF58M3OE",
+        authDomain: "registro-de-caidas.firebaseapp.com",
+        projectId: "registro-de-caidas",
+        storageBucket: "registro-de-caidas.firebasestorage.app",
+        messagingSenderId: "734892587342",
+        appId: "1:734892587342:web:340468d5bde406e79d861f",
+        measurementId: "G-YNT9E730YT"
+    };
+
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Save data to Firestore
+    function saveData(record) {
+        db.collection("fallData").add(record)
+            .then(() => console.log("Data saved:", record))
+            .catch(error => console.error("Error saving data:", error));
+    }
+
+    // Load data from Firestore
+    function loadData() {
+        db.collection("fallData").get()
+            .then(snapshot => {
+                const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderTable(data);
+            })
+            .catch(error => console.error("Error loading data:", error));
+    }
+
+    // Delete all data from Firestore
+    function deleteAllData() {
+        db.collection("fallData").get()
+            .then(snapshot => {
+                const batch = db.batch();
+                snapshot.docs.forEach(doc => batch.delete(doc.ref));
+                return batch.commit();
+            })
+            .then(() => {
+                console.log("All data deleted");
+                renderTable([]);
+            })
+            .catch(error => console.error("Error deleting data:", error));
+    }
+
+    // Initialize Firestore data on page load
+    document.addEventListener("DOMContentLoaded", loadData);
+</script>
+<!-- Login Section -->
+<div id="login-section" style="display: none;">
+<h2>Iniciar Sesión</h2>
+<form id="login-form">
+<label for="login-email">Correo electrónico:</label>
+<input id="login-email" required="" type="email"/>
+<label for="login-password">Contraseña:</label>
+<input id="login-password" required="" type="password"/>
+<button type="submit">Iniciar Sesión</button>
+</form>
+</div>
+<!-- Main Content Section -->
+<div id="main-content" style="display: none;">
+<h2>Bienvenido a la aplicación</h2>
+<button id="logout-button">Cerrar Sesión</button>
+</div>
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-auth-compat.js"></script>
+<script>
+    // Firebase Authentication Setup
+    const auth = firebase.auth();
+
+    document.addEventListener("DOMContentLoaded", () => {
+        // DOM Elements
+        const loginSection = document.getElementById("login-section");
+        const mainContent = document.getElementById("main-content");
+        const loginForm = document.getElementById("login-form");
+        const logoutButton = document.getElementById("logout-button");
+
+        // Show login form if not authenticated
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // User is signed in
+                loginSection.style.display = "none";
+                mainContent.style.display = "block";
+                console.log("Usuario autenticado:", user.email);
+            } else {
+                // No user is signed in
+                loginSection.style.display = "block";
+                mainContent.style.display = "none";
+                console.log("No autenticado");
+            }
+        });
+
+        // Login functionality
+        loginForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const email = document.getElementById("login-email").value;
+            const password = document.getElementById("login-password").value;
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then(() => {
+                    alert("Inicio de sesión exitoso.");
+                    loginForm.reset();
+                })
+                .catch(error => {
+                    console.error("Error de inicio de sesión:", error.message);
+                    alert("Error: " + error.message);
+                });
+        });
+
+        // Logout functionality
+        logoutButton.addEventListener("click", () => {
+            auth.signOut().then(() => {
+                alert("Sesión cerrada exitosamente.");
+            }).catch(error => {
+                console.error("Error al cerrar sesión:", error.message);
+                alert("Error: " + error.message);
+            });
+        });
+    });
+</script>
+<script>
+    // Datos iniciales para la tabla
+    const rawData = [
+        ["Elías Lara", "2024-05-04", "6 a 8", "Al lado de la cama de la habitación", "Sin consecuencias", "Se oyó"],
+        ["María Folgado", "2024-05-13", "14 a 16", "En mitad de la habitación", "TCE", "No hay sensor"],
+        ["Carmen Yela", "2024-05-14", "10 a 12", "Al lado de la cama de la habitación", "Sin consecuencias", "No hay sensor"]
+    ];
+
+    // Convertir los datos iniciales para ser utilizados en la tabla
+    let data = rawData.map((record, index) => ({
+        id: index + 1,
+        residente: record[0],
+        fecha: record[1],
+        franja: record[2],
+        lugar: record[3],
+        consecuencia: record[4],
+        sensor: record[5]
+    }));
+
+    // Función para renderizar datos directamente en la tabla
+    function renderTableDirectly(data) {
+        const tbody = document.getElementById("data-body");
+        tbody.innerHTML = ""; // Limpiar contenido previo
+        data.forEach(record => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${record.residente}</td>
+                <td>${record.fecha}</td>
+                <td>${record.franja}</td>
+                <td>${record.lugar}</td>
+                <td>${record.consecuencia}</td>
+                <td>${record.sensor}</td>
+                <td><button class="delete-individual" data-id="${record.id}">Eliminar</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // Renderizar los datos iniciales al cargar la página
+    document.addEventListener("DOMContentLoaded", () => {
+        renderTableDirectly(data);
+    });
+</script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script>
+    function downloadExcel() {
+        // Crear hoja de cálculo desde los datos de la tabla
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Datos");
+
+        // Exportar archivo Excel
+        XLSX.writeFile(wb, "registro_caidas.xlsx");
+    }
+</script>
+</body>
+</html>
