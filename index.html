@@ -1129,5 +1129,102 @@
         }
 
     </script>
+
+<script>
+    const API_URL = "https://sheetdb.io/api/v1/oawmv4fq268tr";
+
+    // Obtener datos desde la API y renderizarlos en la tabla
+    function fetchAndRenderData() {
+        fetch(API_URL)
+            .then(response => response.json())
+            .then(data => {
+                renderTable(data);
+            })
+            .catch(error => {
+                console.error("Error al obtener datos:", error);
+                alert("No se pudieron cargar los datos.");
+            });
+    }
+
+    // Agregar un nuevo registro usando la API
+    function addRecord(record) {
+        fetch(API_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(record)
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert("Registro agregado exitosamente.");
+            fetchAndRenderData();
+        })
+        .catch(error => {
+            console.error("Error al agregar el registro:", error);
+            alert("No se pudo agregar el registro.");
+        });
+    }
+
+    // Eliminar un registro por su nombre (único en este caso)
+    function deleteRecordByName(name) {
+        fetch(`${API_URL}/Nombre del residente/${encodeURIComponent(name)}`, {
+            method: "DELETE"
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert("Registro eliminado exitosamente.");
+            fetchAndRenderData();
+        })
+        .catch(error => {
+            console.error("Error al eliminar el registro:", error);
+            alert("No se pudo eliminar el registro.");
+        });
+    }
+
+    // Renderizar los datos en la tabla
+    function renderTable(data) {
+        const tbody = document.querySelector("#data-table tbody");
+        tbody.innerHTML = ""; // Limpiar la tabla
+
+        data.forEach(item => {
+            const row = `
+                <tr>
+                    <td>${item["Nombre del residente"]}</td>
+                    <td>${item["Fecha"]}</td>
+                    <td>${item["Franja horaria"]}</td>
+                    <td>${item["Lugar"]}</td>
+                    <td>${item["Consecuencias"]}</td>
+                    <td>${item["Sensor de movimiento"]}</td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" onclick="deleteRecordByName('${item["Nombre del residente"]}')">Eliminar</button>
+                    </td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+    }
+
+    // Manejar el envío del formulario para agregar un nuevo registro
+    document.getElementById("registroCaidas").addEventListener("submit", function(event) {
+        event.preventDefault();
+
+        const nuevoRegistro = {
+            "Nombre del residente": document.getElementById("nombreResidente").value,
+            "Fecha": document.getElementById("fechaCaida").value,
+            "Franja horaria": document.getElementById("franjaHoraria").value,
+            "Lugar": document.getElementById("lugarCaida").value,
+            "Consecuencias": document.getElementById("consecuencias").value,
+            "Sensor de movimiento": document.getElementById("sensorMovimiento").value
+        };
+
+        addRecord(nuevoRegistro);
+        this.reset(); // Resetear el formulario
+    });
+
+    // Cargar datos al inicio
+    window.onload = fetchAndRenderData;
+</script>
+
 </body>
 </html>
