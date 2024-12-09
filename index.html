@@ -24,11 +24,15 @@
         }
         .chart-container {
             margin: 20px 0;
-            max-width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
-        canvas {
-            max-height: 400px;
+        .chart-container canvas {
             background-color: white;
+            width: 80%;
+            max-width: 1200px; 
+            height: 500px;
         }
         .chart-selector {
             text-align: center;
@@ -54,7 +58,8 @@
                 <button class="btn btn-outline-primary me-2" id="btnLugar">Lugar</button>
                 <button class="btn btn-outline-primary me-2" id="btnConsecuencias">Consecuencias</button>
                 <button class="btn btn-outline-primary me-2" id="btnLugarHabitacion">Lugar dentro de la habitación</button>
-                <button class="btn btn-outline-primary" id="btnResidente">Residente con 3+ Caídas</button>
+                <button class="btn btn-outline-primary me-2" id="btnResidente">Residente con 3+ Caídas</button>
+                <button class="btn btn-outline-primary" id="btnFecha">Caídas por fecha</button>
             </div>
         </div>
 
@@ -80,26 +85,34 @@
             </div>
             <div class="card-body">
                 <div class="row mb-3">
-                    <div class="col-md-3">
-                        <label for="filterFranjaSelect" class="form-label">Filtrar por franja horaria:</label>
+                    <div class="col-md-2">
+                        <label for="filterFromDate" class="form-label">Desde:</label>
+                        <input type="date" id="filterFromDate" class="form-control">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filterToDate" class="form-label">Hasta:</label>
+                        <input type="date" id="filterToDate" class="form-control">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filterFranjaSelect" class="form-label">Franja horaria:</label>
                         <select id="filterFranjaSelect" class="form-select">
                             <option value="">Todas</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
-                        <label for="filterLugarSelect" class="form-label">Filtrar por lugar:</label>
+                    <div class="col-md-2">
+                        <label for="filterLugarSelect" class="form-label">Lugar:</label>
                         <select id="filterLugarSelect" class="form-select">
                             <option value="">Todos</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
-                        <label for="filterConsecuenciasSelect" class="form-label">Filtrar por consecuencias:</label>
+                    <div class="col-md-2">
+                        <label for="filterConsecuenciasSelect" class="form-label">Consecuencias:</label>
                         <select id="filterConsecuenciasSelect" class="form-select">
                             <option value="">Todas</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
-                        <label for="filterResidenteSelect" class="form-label">Filtrar por residente:</label>
+                    <div class="col-md-2">
+                        <label for="filterResidenteSelect" class="form-label">Residente:</label>
                         <select id="filterResidenteSelect" class="form-select">
                             <option value="">Todos</option>
                         </select>
@@ -118,7 +131,7 @@
                 <button id="importExcelBtn" class="btn btn-info me-2" data-bs-toggle="tooltip" data-bs-placement="top" title="Formato de fecha esperado: d/m/yyyy o yyyy-mm-dd">Importar desde Excel</button>
                 <input type="file" id="importExcelInput" accept=".xlsx, .xls" style="display: none;">
                 <button id="deleteAll" class="btn btn-danger me-2">Eliminar Todos los Registros</button>
-                <button id="undoAction" class="btn btn-warning" disabled>Deshacer Última Acción</button>
+                <!-- Botón de deshacer última acción eliminado -->
                 <div class="mt-2">
                     <small class="text-muted">Formatos de fecha esperados: <strong>d/m/yyyy</strong> o <strong>yyyy-mm-dd</strong></small>
                 </div>
@@ -132,11 +145,14 @@
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <h6>Total de Caídas Registradas: <span id="totalFalls">0</span></h6>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <h6>Caídas Visibles: <span id="visibleFalls">0</span></h6>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>Residentes con al menos una caída: <span id="distinctResidents">0</span></h6>
                     </div>
                 </div>
             </div>
@@ -151,7 +167,7 @@
                 <table class="table table-striped" id="data-table">
                     <thead>
                         <tr>
-                            <th>Nombre del residente</th>
+                            <th>Nombre del residente (Codificado)</th>
                             <th>Fecha</th>
                             <th>Franja horaria</th>
                             <th>Lugar de la caída</th>
@@ -177,7 +193,6 @@
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label for="nombreResidente" class="form-label">Nombre del Residente</label>
-                            <!-- Añadimos el list al input y el datalist -->
                             <input type="text" class="form-control" id="nombreResidente" list="residentesList" required>
                             <datalist id="residentesList"></datalist>
                         </div>
@@ -263,11 +278,16 @@
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // URL de la API de SheetDB
         const apiUrl = "https://sheetdb.io/api/v1/oawmv4fq268tr";
 
         function generateUniqueId() {
             return '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // Convierte dd/mm/yyyy a Date
+        function dateStrToDate(dStr) {
+            const [dia, mes, año] = dStr.split('/').map(n=>parseInt(n,10));
+            return new Date(año, mes-1, dia);
         }
 
         function parseFecha(fechaStr) {
@@ -295,6 +315,19 @@
             } else {
                 return null;
             }
+        }
+
+        // Función para codificar el nombre del residente
+        function convertNameToCode(fullName) {
+            const parts = fullName.trim().split(" ");
+            if (parts.length < 2) return fullName; 
+            const lastName = parts[parts.length - 1]; 
+            const firstName = parts[0]; 
+
+            const lastNameCode = lastName.charAt(0).toUpperCase() + lastName.slice(1,3).toLowerCase();
+            const firstNameCode = firstName.charAt(0).toUpperCase() + firstName.slice(1,2).toLowerCase();
+
+            return lastNameCode + firstNameCode;
         }
 
         const colorPalette = [
@@ -341,7 +374,6 @@
             };
         }
 
-        // Datos iniciales
         let data = [
             { id: generateUniqueId(), residente: "Elías Lara", fecha: "4/5/2024", franja: "6 a 8", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
             { id: generateUniqueId(), residente: "María Folgado", fecha: "13/5/2024", franja: "14 a 16", lugar: "En mitad de la habitación", consecuencias: "TCE", sensor: "No hay sensor" },
@@ -408,28 +440,66 @@
             { id: generateUniqueId(), residente: "Martín Nieto", fecha: "22/11/2024", franja: "16 a 18", lugar: "Salón de la segunda planta", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
             { id: generateUniqueId(), residente: "Mercedes Reguera", fecha: "28/11/2024", franja: "22 a 00", lugar: "A los pies de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
             { id: generateUniqueId(), residente: "Elías Lara", fecha: "1/12/2024", franja: "8 a 10", lugar: "A los pies de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
-
-            // Nuevos Registros Añadidos
             { id: generateUniqueId(), residente: "Carmen Yela", fecha: "14/5/2024", franja: "10 a 12", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
             { id: generateUniqueId(), residente: "Isabel Sanz", fecha: "5/6/2024", franja: "16 a 18", lugar: "Dentro del baño de la habitación", consecuencias: "Herida", sensor: "No hay sensor" },
             { id: generateUniqueId(), residente: "Josefina Perdiguero", fecha: "21/6/2024", franja: "16 a 18", lugar: "Dentro del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" }
         ];
 
+        // Codificamos nombres
+        data = data.map(item => {
+            const newItem = {...item};
+            newItem.residente = convertNameToCode(item.residente);
+            return newItem;
+        });
+
         const filterFranjaSelect = document.getElementById('filterFranjaSelect');
         const filterLugarSelect = document.getElementById('filterLugarSelect');
         const filterConsecuenciasSelect = document.getElementById('filterConsecuenciasSelect');
         const filterResidenteSelect = document.getElementById('filterResidenteSelect');
+        const filterFromDate = document.getElementById('filterFromDate');
+        const filterToDate = document.getElementById('filterToDate');
+
         const tbody = document.querySelector("#data-table tbody");
         const ctx = document.getElementById('chart').getContext('2d');
         const totalFallsElement = document.getElementById('totalFalls');
         const visibleFallsElement = document.getElementById('visibleFalls');
+        const distinctResidentsElement = document.getElementById('distinctResidents');
 
         let actionStack = [];
         let currentChartType = 'franja';
+        let filteredData = [...data]; 
 
-        function renderTable(filteredData) {
+        function filterData() {
+            const selectedFranja = filterFranjaSelect.value;
+            const selectedLugar = filterLugarSelect.value;
+            const selectedConsecuencias = filterConsecuenciasSelect.value;
+            const selectedResidente = filterResidenteSelect.value;
+            const fromDateValue = filterFromDate.value;
+            const toDateValue = filterToDate.value;
+
+            filteredData = data.filter(item => {
+                let pass = (selectedFranja === "" || item.franja === selectedFranja) &&
+                           (selectedLugar === "" || item.lugar === selectedLugar) &&
+                           (selectedConsecuencias === "" || item.consecuencias === selectedConsecuencias) &&
+                           (selectedResidente === "" || item.residente === selectedResidente);
+
+                // Solo aplicar filtrado de fecha si se han seleccionado ambas fechas
+                if (fromDateValue && toDateValue) {
+                    const itemDate = dateStrToDate(item.fecha);
+                    const fromDateObj = new Date(fromDateValue);
+                    const toDateObj = new Date(toDateValue);
+                    if (itemDate < fromDateObj || itemDate > toDateObj) pass = false;
+                }
+
+                return pass;
+            });
+            renderTable(filteredData);
+            updateChart();
+        }
+
+        function renderTable(fData) {
             tbody.innerHTML = "";
-            filteredData.forEach(item => {
+            fData.forEach(item => {
                 const row = `<tr>
                     <td>${item.residente}</td>
                     <td>${item.fecha}</td>
@@ -441,25 +511,7 @@
                 </tr>`;
                 tbody.innerHTML += row;
             });
-            updateCounters(filteredData);
-        }
-
-        function filterData() {
-            const selectedFranja = filterFranjaSelect.value;
-            const selectedLugar = filterLugarSelect.value;
-            const selectedConsecuencias = filterConsecuenciasSelect.value;
-            const selectedResidente = filterResidenteSelect.value;
-
-            const filtered = data.filter(item => {
-                return (
-                    (selectedFranja === "" || item.franja === selectedFranja) &&
-                    (selectedLugar === "" || item.lugar === selectedLugar) &&
-                    (selectedConsecuencias === "" || item.consecuencias === selectedConsecuencias) &&
-                    (selectedResidente === "" || item.residente === selectedResidente)
-                );
-            });
-            renderTable(filtered);
-            updateChart();
+            updateCounters(fData);
         }
 
         function initializeFilterSelects() {
@@ -496,13 +548,20 @@
             });
         }
 
-        function initializeFormSelects() {
-            // Ya definido en HTML
+        function getCaidasPorFecha() {
+            const dateCount = {};
+            filteredData.forEach(item => {
+                dateCount[item.fecha] = (dateCount[item.fecha] || 0) + 1;
+            });
+            const sortedDates = Object.keys(dateCount).sort((a,b) => dateStrToDate(a) - dateStrToDate(b));
+            const counts = sortedDates.map(d => dateCount[d]);
+            const colors = assignColors(sortedDates);
+            return { labels: sortedDates, counts, colors };
         }
 
         function getCaidasPorFranja() {
             const franjaCount = {};
-            data.forEach(item => {
+            filteredData.forEach(item => {
                 franjaCount[item.franja] = (franjaCount[item.franja] || 0) + 1;
             });
             const timeOrder = ["0 a 2","2 a 4","4 a 6","6 a 8","8 a 10","10 a 12","12 a 14","14 a 16","16 a 18","18 a 20","20 a 22","22 a 0"];
@@ -514,7 +573,7 @@
 
         function getCaidasPorLugar() {
             const lugarCount = {};
-            data.forEach(item => {
+            filteredData.forEach(item => {
                 lugarCount[item.lugar] = (lugarCount[item.lugar] || 0) + 1;
             });
             let labels = Object.keys(lugarCount).sort();
@@ -526,7 +585,7 @@
 
         function getCaidasPorConsecuencias() {
             const consecuenciasCount = {};
-            data.forEach(item => {
+            filteredData.forEach(item => {
                 consecuenciasCount[item.consecuencias] = (consecuenciasCount[item.consecuencias] || 0) + 1;
             });
             let labels = Object.keys(consecuenciasCount).sort();
@@ -538,7 +597,7 @@
 
         function getCaidasPorLugarHabitacion() {
             const lugarHabitacionCount = {};
-            data.forEach(item => {
+            filteredData.forEach(item => {
                 if (item.lugar.toLowerCase().includes("habitación")) {
                     let lugarNormalized = item.lugar.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                     let lugarEspecifico = lugarNormalized.replace(/al lado de la cama de la habitacion|a los pies de la cama de la habitacion|en mitad de la habitacion|puerta del baño de la habitacion|dentro del baño de la habitacion/g, match => {
@@ -564,7 +623,7 @@
 
         function getCaidasPorResidenteMin3() {
             const residenteCount = {};
-            data.forEach(item => {
+            filteredData.forEach(item => {
                 residenteCount[item.residente] = (residenteCount[item.residente] || 0) + 1;
             });
             const filteredResidentes = Object.keys(residenteCount).filter(residente => residenteCount[residente] >= 3);
@@ -629,23 +688,35 @@
         function renderChart(type) {
             let chartData;
             let chartLabel;
+            let chartType = 'bar';
+
             if (type === 'franja') {
                 chartData = getCaidasPorFranja();
                 chartLabel = 'Número de caídas por franja horaria';
+                chartType = 'bar';
             } else if (type === 'lugar') {
                 chartData = getCaidasPorLugar();
                 chartLabel = 'Número de caídas por lugar';
+                chartType = 'bar';
             } else if (type === 'consecuencias') {
                 chartData = getCaidasPorConsecuencias();
                 chartLabel = 'Número de caídas por consecuencias';
+                chartType = 'bar';
             } else if (type === 'lugarHabitacion') {
                 chartData = getCaidasPorLugarHabitacion();
                 chartLabel = 'Número de caídas por lugar dentro de la habitación';
+                chartType = 'bar';
             } else if (type === 'residente') {
                 chartData = getCaidasPorResidenteMin3();
                 chartLabel = 'Número de caídas por residente (3 o más caídas)';
+                chartType = 'bar';
+            } else if (type === 'fecha') {
+                chartData = getCaidasPorFecha();
+                chartLabel = 'Número de caídas por fecha';
+                chartType = 'line';
             }
 
+            chart.config.type = chartType;
             chart.data.labels = chartData.labels;
             chart.data.datasets[0].data = chartData.counts;
             chart.data.datasets[0].backgroundColor = chartData.colors;
@@ -659,17 +730,22 @@
             renderChart(currentChartType);
         }
 
-        function updateCounters(filteredData = data) {
+        function updateCounters(fData = data) {
             const total = data.length;
             totalFallsElement.innerText = total;
-            const visible = filteredData.length;
+            const visible = fData.length;
             visibleFallsElement.innerText = visible;
+
+            const distinctResidents = new Set(fData.map(item => item.residente)).size;
+            distinctResidentsElement.innerText = distinctResidents;
         }
 
         filterFranjaSelect.addEventListener('change', filterData);
         filterLugarSelect.addEventListener('change', filterData);
         filterConsecuenciasSelect.addEventListener('change', filterData);
         filterResidenteSelect.addEventListener('change', filterData);
+        filterFromDate.addEventListener('change', filterData);
+        filterToDate.addEventListener('change', filterData);
 
         document.getElementById('exportExcel').addEventListener('click', () => {
             if (data.length === 0) {
@@ -689,7 +765,7 @@
                 const remoteData = await response.json();
                 const transformed = remoteData.map(row => ({
                     id: row["id"] || generateUniqueId(),
-                    residente: row["Nombre del residente"] || "",
+                    residente: convertNameToCode(row["Nombre del residente"] || ""),
                     fecha: parseFecha(row["Fecha"]) || "",
                     franja: row["Franja horaria"] || "",
                     lugar: row["Lugar"] || "",
@@ -778,37 +854,16 @@
                 actionStack.push({ action: 'deleteAll', records: [...data] });
                 await deleteAllFromAPI();
                 data = [];
-                renderTable(data);
+                filteredData = [];
+                renderTable(filteredData);
                 updateChart();
                 updateButtonStates();
                 alert('Todos los registros han sido eliminados.');
             }
         });
 
-        document.getElementById('undoAction').addEventListener('click', () => {
-            if (actionStack.length === 0) {
-                alert('No hay acciones para deshacer.');
-                return;
-            }
-            const lastAction = actionStack.pop();
-            if (lastAction.action === 'add') {
-                const index = data.findIndex(item => item.id === lastAction.record.id);
-                if (index !== -1) {
-                    data.splice(index, 1);
-                }
-            } else if (lastAction.action === 'delete') {
-                data.push(lastAction.record);
-            } else if (lastAction.action === 'deleteAll') {
-                data = lastAction.records;
-            }
+        // Se elimina toda la lógica relacionada con el botón de deshacer acción
 
-            filterData();
-            updateChart();
-            updateButtonStates();
-            alert('Última acción deshecha exitosamente. (Nota: Esto no deshace en la API)');
-        });
-
-        // Nueva función para actualizar el datalist de residentes
         function actualizarDatalistResidentes() {
             const uniqueResidentes = [...new Set(data.map(d => d.residente))].sort();
             const residentesList = document.getElementById('residentesList');
@@ -834,13 +889,13 @@
                 return;
             }
 
-            residente = residente.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\b\w/g, c => c.toUpperCase());
-
             const fechaFormateada = parseFecha(fecha);
             if (!fechaFormateada) {
                 alert('Por favor, ingresa una fecha válida.');
                 return;
             }
+
+            residente = convertNameToCode(residente);
 
             const nuevoRegistro = {
                 id: generateUniqueId(),
@@ -859,8 +914,6 @@
             updateChart();
             this.reset();
             updateButtonStates();
-
-            // Actualizamos el datalist de residentes al añadir un nuevo registro
             actualizarDatalistResidentes();
 
             if (!filterResidenteSelect.querySelector(`option[value="${nuevoRegistro.residente}"]`)) {
@@ -869,7 +922,7 @@
             alert('Caída registrada exitosamente');
         });
 
-        tbody.addEventListener('click', async function(e) {
+        document.querySelector("#data-table tbody").addEventListener('click', async function(e) {
             if (e.target && e.target.classList.contains('delete-btn')) {
                 const id = e.target.getAttribute('data-id');
                 if (confirm('¿Estás seguro de que deseas eliminar este registro?')) {
@@ -918,6 +971,12 @@
             updateChart();
         });
 
+        document.getElementById('btnFecha').addEventListener('click', function() {
+            currentChartType = 'fecha';
+            setActiveButton(this);
+            updateChart();
+        });
+
         function setActiveButton(button) {
             const buttons = document.querySelectorAll('.chart-selector .btn');
             buttons.forEach(btn => btn.classList.remove('active'));
@@ -925,15 +984,9 @@
         }
 
         function updateButtonStates() {
-            const undoButton = document.getElementById('undoAction');
             const deleteAllButton = document.getElementById('deleteAll');
 
-            if (actionStack.length > 0) {
-                undoButton.disabled = false;
-            } else {
-                undoButton.disabled = true;
-            }
-
+            // Antes se verificaba también el estado del botón de deshacer, ya no existe
             if (data.length > 0) {
                 deleteAllButton.disabled = false;
             } else {
@@ -1019,13 +1072,14 @@
                         return;
                     }
 
-                    residente = residente.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\b\w/g, c => c.toUpperCase());
                     const fechaFormateada = parseFecha(fechaOriginal);
                     if (!fechaFormateada) {
                         recordsSkipped++;
                         errorMessages.push(`Fila ${index + 2}: Fecha inválida.`);
                         return;
                     }
+
+                    residente = convertNameToCode(residente);
 
                     const duplicate = data.find(item => item.residente === residente && item.fecha === fechaFormateada && item.franja === franja && item.lugar === lugar);
                     if (duplicate) {
@@ -1060,7 +1114,6 @@
             updateChart();
             updateButtonStates();
 
-            // Actualizamos el datalist de residentes tras la importación
             actualizarDatalistResidentes();
 
             await addMultipleRecordsToAPI(newRecords);
@@ -1083,14 +1136,11 @@
         window.onload = async function() {
             await fetchRemoteData();
             initializeFilterSelects();
-            initializeFormSelects();
             renderChart(currentChartType);
             renderTable(data);
             updateCounters(data);
             document.getElementById('btnFranja').classList.add('active');
             updateButtonStates();
-
-            // Actualizar el datalist de residentes al inicio
             actualizarDatalistResidentes();
 
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
