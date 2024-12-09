@@ -339,11 +339,75 @@
             };
         }
 
-        // **Datos locales originales**
+        // Aquí restauramos TODOS los registros originales que proporcionaste
         let data = [
             { id: generateUniqueId(), residente: "Elías Lara", fecha: "4/5/2024", franja: "6 a 8", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
             { id: generateUniqueId(), residente: "María Folgado", fecha: "13/5/2024", franja: "14 a 16", lugar: "En mitad de la habitación", consecuencias: "TCE", sensor: "No hay sensor" },
-            // ... (Aquí el resto de registros locales originales que ya tenías)
+            { id: generateUniqueId(), residente: "Juan Victorio Calvo", fecha: "21/5/2024", franja: "16 a 18", lugar: "Al lado de la cama de la habitación", consecuencias: "Herida", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Mercedes Reguera", fecha: "14/5/2024", franja: "10 a 12", lugar: "Salón de la primera planta", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Luis Rodríguez", fecha: "2/7/2024", franja: "2 a 4", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "María Pérez", fecha: "23/5/2024", franja: "8 a 10", lugar: "Dentro del baño de la habitación", consecuencias: "TCE", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Luisa Cruz", fecha: "24/5/2024", franja: "18 a 20", lugar: "Terraza", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Francisco Ferreira", fecha: "4/6/2024", franja: "22 a 00", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Mercedes Reguera", fecha: "5/7/2024", franja: "4 a 6", lugar: "Dentro del baño de la habitación", consecuencias: "Fractura costal", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "María Mateos", fecha: "9/7/2024", franja: "8 a 10", lugar: "Dentro del baño de la habitación", consecuencias: "Fractura de muñeca", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "María Sancho", fecha: "16/7/2024", franja: "2 a 4", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "María Sancho", fecha: "19/7/2024", franja: "0 a 2", lugar: "Al lado de la cama de la habitación", consecuencias: "Contusión", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Martín Nieto", fecha: "21/7/2024", franja: "12 a 14", lugar: "Dentro del baño de la habitación", consecuencias: "Herida", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Cayo Martín", fecha: "22/7/2024", franja: "0 a 2", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Lucrecia García", fecha: "24/7/2024", franja: "0 a 2", lugar: "Pasillo", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Valentín Vera", fecha: "25/7/2024", franja: "16 a 18", lugar: "Salón de la planta segunda", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Alfredo Palazuelos", fecha: "31/7/2024", franja: "16 a 18", lugar: "Dentro del baño geriátrico", consecuencias: "Contusión", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Alfredo Palazuelos", fecha: "2/8/2024", franja: "2 a 4", lugar: "Dentro del baño de la habitación", consecuencias: "Contusión", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Mariano Iglesias", fecha: "16/8/2024", franja: "14 a 16", lugar: "Dentro del baño geriátrico", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Agustín Peinado", fecha: "23/8/2024", franja: "4 a 6", lugar: "Al lado de la cama de la habitación", consecuencias: "TCE", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Elías Lara", fecha: "27/8/2024", franja: "18 a 20", lugar: "A los pies de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Josefina Perdiguero", fecha: "27/8/2024", franja: "20 a 22", lugar: "A los pies de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Alfredo Palazuelos", fecha: "11/9/2024", franja: "16 a 18", lugar: "Recepción", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "María Sancho", fecha: "21/9/2024", franja: "20 a 22", lugar: "Dentro del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Elías Lara", fecha: "22/9/2024", franja: "12 a 14", lugar: "Comedor", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Alfredo Palazuelos", fecha: "23/9/2024", franja: "10 a 12", lugar: "Dentro del ascensor", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Luis Rodríguez", fecha: "26/9/2024", franja: "2 a 4", lugar: "Dentro del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Luciano González", fecha: "26/9/2024", franja: "20 a 22", lugar: "En mitad de la habitación", consecuencias: "Herida", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Mariano Iglesias", fecha: "28/9/2024", franja: "14 a 16", lugar: "Dentro del baño geriátrico", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Alberto González", fecha: "1/10/2024", franja: "20 a 22", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Alberto González", fecha: "4/10/2024", franja: "22 a 00", lugar: "Puerta del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Alberto González", fecha: "9/10/2024", franja: "22 a 00", lugar: "Puerta del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Juan Victorio Calvo", fecha: "10/10/2024", franja: "0 a 2", lugar: "En mitad de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Luciano González", fecha: "13/10/2024", franja: "20 a 22", lugar: "Dentro del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Alberto González", fecha: "13/10/2024", franja: "22 a 00", lugar: "En mitad de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Alberto González", fecha: "17/10/2024", franja: "20 a 22", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Alberto González", fecha: "17/10/2024", franja: "6 a 8", lugar: "Salón de la primera planta", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Ascensión Sáiz", fecha: "17/10/2024", franja: "10 a 12", lugar: "Salón de la segunda planta", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Alfredo Palazuelos", fecha: "18/10/2024", franja: "8 a 10", lugar: "Puerta del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Elías Lara", fecha: "18/10/2024", franja: "10 a 12", lugar: "Salón de la segunda planta", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Juan Victorio Calvo", fecha: "19/10/2024", franja: "22 a 00", lugar: "A los pies de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Agustín Peinado", fecha: "19/10/2024", franja: "6 a 8", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Luciano González", fecha: "19/10/2024", franja: "20 a 22", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Juan Victorio Calvo", fecha: "19/10/2024", franja: "8 a 10", lugar: "En mitad de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Juan Victorio Calvo", fecha: "19/10/2024", franja: "10 a 12", lugar: "Salón de la segunda planta", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Juan Victorio Calvo", fecha: "20/10/2024", franja: "16 a 18", lugar: "Pasillo", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Alfredo Palazuelos", fecha: "21/10/2024", franja: "4 a 6", lugar: "Puerta del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Mercedes Reguera", fecha: "21/10/2024", franja: "0 a 2", lugar: "Salón de la primera planta", consecuencias: "Contusión", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Juan Victorio Calvo", fecha: "26/10/2024", franja: "4 a 6", lugar: "Dentro del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Andrea Gutierrez", fecha: "26/10/2024", franja: "8 a 10", lugar: "Puerta del baño de la habitación", consecuencias: "Contusión", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Vicente Martínez", fecha: "27/10/2024", franja: "14 a 16", lugar: "Recepción", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Agustín Peinado", fecha: "2/11/2024", franja: "22 a 00", lugar: "Pasillo", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Alfredo Palazuelos", fecha: "3/11/2024", franja: "4 a 6", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Lucrecia García", fecha: "3/11/2024", franja: "16 a 18", lugar: "Sala de actividades", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Antonio del Valle", fecha: "4/11/2024", franja: "22 a 00", lugar: "Dentro del baño de la habitación", consecuencias: "Contusión", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "María Sancho", fecha: "7/11/2024", franja: "2 a 4", lugar: "Dentro del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Alberto González", fecha: "7/11/2024", franja: "16 a 18", lugar: "Planta primera", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Martín Nieto", fecha: "9/11/2024", franja: "14 a 16", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Martín Nieto", fecha: "10/11/2024", franja: "14 a 16", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Francisca Blanco", fecha: "13/11/2024", franja: "10 a 12", lugar: "Dentro del baño de la habitación", consecuencias: "Herida", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Manuela Vicente", fecha: "17/11/2024", franja: "14 a 16", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Alfredo Palazuelos", fecha: "21/11/2024", franja: "10 a 12", lugar: "Recepción", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Martín Nieto", fecha: "22/11/2024", franja: "16 a 18", lugar: "Salón de la segunda planta", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Mercedes Reguera", fecha: "28/11/2024", franja: "22 a 00", lugar: "A los pies de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Elías Lara", fecha: "1/12/2024", franja: "8 a 10", lugar: "A los pies de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+
+            // **Nuevos Registros Añadidos:**
             { id: generateUniqueId(), residente: "Carmen Yela", fecha: "14/5/2024", franja: "10 a 12", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
             { id: generateUniqueId(), residente: "Isabel Sanz", fecha: "5/6/2024", franja: "16 a 18", lugar: "Dentro del baño de la habitación", consecuencias: "Herida", sensor: "No hay sensor" },
             { id: generateUniqueId(), residente: "Josefina Perdiguero", fecha: "21/6/2024", franja: "16 a 18", lugar: "Dentro del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" }
@@ -353,10 +417,8 @@
         const filterLugarSelect = document.getElementById('filterLugarSelect');
         const filterConsecuenciasSelect = document.getElementById('filterConsecuenciasSelect');
         const filterResidenteSelect = document.getElementById('filterResidenteSelect');
-
         const tbody = document.querySelector("#data-table tbody");
         const ctx = document.getElementById('chart').getContext('2d');
-
         const totalFallsElement = document.getElementById('totalFalls');
         const visibleFallsElement = document.getElementById('visibleFalls');
 
@@ -619,14 +681,12 @@
             XLSX.writeFile(workbook, "RegistroCaidas.xlsx");
         });
 
-        // **Funciones para sincronizar con la API**
         async function fetchRemoteData() {
             try {
                 const response = await fetch(apiUrl);
                 const remoteData = await response.json();
-                // Transformar data remota al formato local
                 const transformed = remoteData.map(row => ({
-                    id: row["id"] || generateUniqueId(), // Se asume que existe columna "id" en la hoja
+                    id: row["id"] || generateUniqueId(),
                     residente: row["Nombre del residente"] || "",
                     fecha: parseFecha(row["Fecha"]) || "",
                     franja: row["Franja horaria"] || "",
@@ -666,7 +726,6 @@
 
         async function deleteRecordFromAPI(item) {
             try {
-                // Se elimina buscando por id
                 const deleteUrl = `${apiUrl}/id/${encodeURIComponent(item.id)}`;
                 const res = await fetch(deleteUrl, {method: "DELETE"});
                 if (!res.ok) {
@@ -678,7 +737,6 @@
         }
 
         async function deleteAllFromAPI() {
-            // Borrar todos uno por uno
             for (const item of data) {
                 await deleteRecordFromAPI(item);
             }
@@ -716,7 +774,6 @@
             }
             if (confirm('¿Estás seguro de que deseas eliminar **todos** los registros? Esta acción no se puede deshacer.')) {
                 actionStack.push({ action: 'deleteAll', records: [...data] });
-                // Eliminar de la API
                 await deleteAllFromAPI();
                 data = [];
                 renderTable(data);
@@ -781,13 +838,9 @@
                 sensor
             };
 
-            // Agregar al array local
             data.push(nuevoRegistro);
             actionStack.push({ action: 'add', record: nuevoRegistro });
-
-            // Agregar a la API
             await addRecordToAPI(nuevoRegistro);
-
             filterData();
             updateChart();
             this.reset();
@@ -806,7 +859,6 @@
                     if (index !== -1) {
                         const deletedRecord = data[index];
                         actionStack.push({ action: 'delete', record: deletedRecord });
-                        // Eliminar de la API
                         await deleteRecordFromAPI(deletedRecord);
                         data.splice(index, 1);
                         filterData();
@@ -886,7 +938,6 @@
 
         document.getElementById('downloadChart').addEventListener('click', downloadChartAsImage);
 
-        // Importar desde Excel
         const importExcelBtn = document.getElementById('importExcelBtn');
         const importExcelInput = document.getElementById('importExcelInput');
 
@@ -991,7 +1042,6 @@
             updateChart();
             updateButtonStates();
 
-            // Enviar todos los nuevos registros a la API
             await addMultipleRecordsToAPI(newRecords);
 
             let message = `Importación completada.\nRegistros añadidos: ${recordsAdded}\nRegistros omitidos: ${recordsSkipped}`;
@@ -1010,7 +1060,6 @@
         }
 
         window.onload = async function() {
-            // Cargar datos remotos e integrarlos
             await fetchRemoteData();
             initializeFilterSelects();
             initializeFormSelects();
