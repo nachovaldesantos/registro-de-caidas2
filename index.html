@@ -1,89 +1,1030 @@
-// URL de la API de SheetDB
-const apiUrl = "https://sheetdb.io/api/v1/oawmv4fq268tr";
-
-// Función para obtener datos desde la API
-async function fetchDataFromSheetDB() {
-    try {
-        const response = await fetch(apiUrl);
-        const sheetData = await response.json();
-        const apiData = sheetData.map(item => ({
-            id: generateUniqueId(),
-            residente: item["Nombre del residente"] || "Desconocido",
-            fecha: item.Fecha || "",
-            franja: item["Franja horaria"] || "",
-            lugar: item.Lugar || "",
-            consecuencias: item.Consecuencias || "",
-            sensor: item["Sensor de Movimiento"] || ""
-        }));
-        // Combinar los datos locales con los de la API
-        data = [...data, ...apiData];
-        // Actualizar la interfaz
-        renderTable(data);
-        updateChart();
-        updateCounters(data);
-        alert("Datos sincronizados con éxito desde SheetDB.");
-    } catch (error) {
-        console.error("Error al obtener datos de SheetDB:", error);
-        alert("No se pudieron sincronizar los datos desde SheetDB.");
-    }
-}
-
-// Función para enviar nuevos datos a la API
-async function sendDataToSheetDB(newData) {
-    try {
-        const response = await fetch(apiUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                "Nombre del residente": newData.residente,
-                Fecha: newData.fecha,
-                "Franja horaria": newData.franja,
-                Lugar: newData.lugar,
-                Consecuencias: newData.consecuencias,
-                "Sensor de Movimiento": newData.sensor
-            })
-        });
-        if (response.ok) {
-            alert("Nuevo registro añadido correctamente a SheetDB.");
-        } else {
-            console.error("Error al enviar datos:", response.statusText);
-            alert("Hubo un problema al registrar los datos en SheetDB.");
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Caídas de Residentes Mejorado</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js Data Labels Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <!-- SheetJS -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f9fa;
+            color: #343a40;
         }
-    } catch (error) {
-        console.error("Error al enviar datos a SheetDB:", error);
-        alert("Error al comunicarse con SheetDB.");
-    }
-}
+        .table-container {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .chart-container {
+            margin: 20px 0;
+            max-width: 100%;
+        }
+        canvas {
+            max-height: 400px;
+            background-color: white;
+        }
+        .chart-selector {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .card {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <header class="bg-primary text-white text-center py-4">
+        <h1>Registro de Caídas de Residentes</h1>
+    </header>
+    <main class="container my-4">
+        <!-- Selector de Gráficas -->
+        <div class="card">
+            <div class="card-header">
+                <h5>Selecciona el Tipo de Gráfica</h5>
+            </div>
+            <div class="card-body chart-selector">
+                <button class="btn btn-outline-primary me-2" id="btnFranja">Franja Horaria</button>
+                <button class="btn btn-outline-primary me-2" id="btnLugar">Lugar</button>
+                <button class="btn btn-outline-primary me-2" id="btnConsecuencias">Consecuencias</button>
+                <button class="btn btn-outline-primary me-2" id="btnLugarHabitacion">Lugar dentro de la habitación</button>
+                <button class="btn btn-outline-primary" id="btnResidente">Residente con 3+ Caídas</button>
+            </div>
+        </div>
 
-// Llamada inicial para sincronizar los datos
-fetchDataFromSheetDB();
+        <!-- Gráfica y Botón de Descarga -->
+        <div class="card">
+            <div class="card-header">
+                <h5>Visualización de Datos</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="chart"></canvas>
+                </div>
+                <div class="text-center">
+                    <button id="downloadChart" class="btn btn-secondary mt-3">Descargar Gráfica</button>
+                </div>
+            </div>
+        </div>
 
-// Modificación del evento de registro para sincronizar con SheetDB
-document.getElementById("registroCaidas").addEventListener("submit", async function (e) {
-    e.preventDefault();
-    // Capturar datos del formulario como en tu lógica actual
-    const newEntry = {
-        residente: document.getElementById("nombreResidente").value.trim(),
-        fecha: parseFecha(document.getElementById("fechaCaida").value),
-        franja: franjaSelect.value,
-        lugar: lugarSelect.value,
-        consecuencias: consecuenciasSelect.value,
-        sensor: sensorSelect.value
-    };
+        <!-- Filtros -->
+        <div class="card">
+            <div class="card-header">
+                <h5>Filtros</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <label for="filterFranjaSelect" class="form-label">Filtrar por franja horaria:</label>
+                        <select id="filterFranjaSelect" class="form-select">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="filterLugarSelect" class="form-label">Filtrar por lugar:</label>
+                        <select id="filterLugarSelect" class="form-select">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="filterConsecuenciasSelect" class="form-label">Filtrar por consecuencias:</label>
+                        <select id="filterConsecuenciasSelect" class="form-select">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="filterResidenteSelect" class="form-label">Filtrar por residente:</label>
+                        <select id="filterResidenteSelect" class="form-select">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-    // Validación y normalización como en tu código
-    if (!newEntry.residente || !newEntry.fecha || !newEntry.franja || !newEntry.lugar || !newEntry.consecuencias || !newEntry.sensor) {
-        alert("Por favor, completa todos los campos.");
-        return;
-    }
+        <!-- Acciones y Exportaciones -->
+        <div class="card">
+            <div class="card-header">
+                <h5>Acciones</h5>
+            </div>
+            <div class="card-body text-end">
+                <button id="exportExcel" class="btn btn-success me-2">Exportar a Excel</button>
+                <button id="importExcelBtn" class="btn btn-info me-2" data-bs-toggle="tooltip" data-bs-placement="top" title="Formato de fecha esperado: d/m/yyyy o yyyy-mm-dd">Importar desde Excel</button>
+                <input type="file" id="importExcelInput" accept=".xlsx, .xls" style="display: none;">
+                <button id="deleteAll" class="btn btn-danger me-2">Eliminar Todos los Registros</button>
+                <button id="undoAction" class="btn btn-warning" disabled>Deshacer Última Acción</button>
+                <div class="mt-2">
+                    <small class="text-muted">Formatos de fecha esperados: <strong>d/m/yyyy</strong> o <strong>yyyy-mm-dd</strong></small>
+                </div>
+            </div>
+        </div>
 
-    // Agregar al array local
-    newEntry.id = generateUniqueId();
-    data.push(newEntry);
-    renderTable(data);
-    updateChart();
-    updateCounters(data);
+        <!-- Contadores de Caídas -->
+        <div class="card">
+            <div class="card-header">
+                <h5>Contadores de Caídas</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Total de Caídas Registradas: <span id="totalFalls">0</span></h6>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Caídas Visibles: <span id="visibleFalls">0</span></h6>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-    // Enviar datos a SheetDB
-    await sendDataToSheetDB(newEntry);
-});
+        <!-- Tabla de Datos -->
+        <div class="card">
+            <div class="card-header">
+                <h5>Registro de Caídas</h5>
+            </div>
+            <div class="card-body table-container">
+                <table class="table table-striped" id="data-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre del residente</th>
+                            <th>Fecha</th>
+                            <th>Franja horaria</th>
+                            <th>Lugar de la caída</th>
+                            <th>Consecuencias</th>
+                            <th>Sensor de movimiento</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Filas generadas por JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Formulario de Registro de Caídas -->
+        <div class="card">
+            <div class="card-header">
+                <h5>Registrar Nueva Caída</h5>
+            </div>
+            <div class="card-body">
+                <form id="registroCaidas">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="nombreResidente" class="form-label">Nombre del Residente</label>
+                            <input type="text" class="form-control" id="nombreResidente" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="fechaCaida" class="form-label">Fecha</label>
+                            <input type="date" class="form-control" id="fechaCaida" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="franjaHoraria" class="form-label">Franja Horaria</label>
+                            <select class="form-select" id="franjaHoraria" required>
+                                <option value="">Selecciona una opción</option>
+                                <option value="0 a 2">0 a 2</option>
+                                <option value="2 a 4">2 a 4</option>
+                                <option value="4 a 6">4 a 6</option>
+                                <option value="6 a 8">6 a 8</option>
+                                <option value="8 a 10">8 a 10</option>
+                                <option value="10 a 12">10 a 12</option>
+                                <option value="12 a 14">12 a 14</option>
+                                <option value="14 a 16">14 a 16</option>
+                                <option value="16 a 18">16 a 18</option>
+                                <option value="18 a 20">18 a 20</option>
+                                <option value="20 a 22">20 a 22</option>
+                                <option value="22 a 0">22 a 0</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="lugarCaida" class="form-label">Lugar</label>
+                            <select class="form-select" id="lugarCaida" required>
+                                <option value="">Selecciona una opción</option>
+                                <option value="Al lado de la cama de la habitación">Al lado de la cama de la habitación</option>
+                                <option value="A los pies de la cama de la habitación">A los pies de la cama de la habitación</option>
+                                <option value="En mitad de la habitación">En mitad de la habitación</option>
+                                <option value="Puerta del baño de la habitación">Puerta del baño de la habitación</option>
+                                <option value="Dentro del baño de la habitación">Dentro del baño de la habitación</option>
+                                <option value="Pasillo">Pasillo</option>
+                                <option value="Salón de la planta primera">Salón de la planta primera</option>
+                                <option value="Salón de la planta segunda">Salón de la planta segunda</option>
+                                <option value="Recepción">Recepción</option>
+                                <option value="Comedor">Comedor</option>
+                                <option value="Capilla">Capilla</option>
+                                <option value="Sala de actividades">Sala de actividades</option>
+                                <option value="Dentro del ascensor">Dentro del ascensor</option>
+                                <option value="Terraza">Terraza</option>
+                                <option value="Jardín">Jardín</option>
+                                <option value="Salón fondo planta 1">Salón fondo planta 1</option>
+                                <option value="Salón fondo planta 2">Salón fondo planta 2</option>
+                                <option value="Sala común planta 3">Sala común planta 3</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="consecuencias" class="form-label">Consecuencias</label>
+                            <select class="form-select" id="consecuencias" required>
+                                <option value="">Selecciona una opción</option>
+                                <option value="Sin consecuencias">Sin consecuencias</option>
+                                <option value="Herida">Herida</option>
+                                <option value="Contusión">Contusión</option>
+                                <option value="TCE">TCE</option>
+                                <option value="Fractura">Fractura</option>
+                                <option value="Fractura cadera">Fractura cadera</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="sensorMovimiento" class="form-label">Sensor de Movimiento</label>
+                            <select class="form-select" id="sensorMovimiento" required>
+                                <option value="">Selecciona una opción</option>
+                                <option value="Desconocido">Desconocido</option>
+                                <option value="Se oyó">Se oyó</option>
+                                <option value="No se oyó">No se oyó</option>
+                                <option value="No hay sensor">No hay sensor</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary">Registrar Caída</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // URL de la API de SheetDB
+        const apiUrl = "https://sheetdb.io/api/v1/oawmv4fq268tr";
+
+        function generateUniqueId() {
+            return '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function parseFecha(fechaStr) {
+            let partes;
+            if (fechaStr.includes('/')) {
+                partes = fechaStr.split('/');
+                if (partes.length !== 3) return null;
+                let [dia, mes, año] = partes;
+                dia = parseInt(dia, 10);
+                mes = parseInt(mes, 10);
+                año = parseInt(año, 10);
+                if (isNaN(dia) || isNaN(mes) || isNaN(año)) return null;
+                if (dia < 1 || dia > 31 || mes < 1 || mes > 12) return null;
+                return `${dia}/${mes}/${año}`;
+            } else if (fechaStr.includes('-')) {
+                partes = fechaStr.split('-');
+                if (partes.length !== 3) return null;
+                let [año, mes, dia] = partes;
+                dia = parseInt(dia, 10);
+                mes = parseInt(mes, 10);
+                año = parseInt(año, 10);
+                if (isNaN(dia) || isNaN(mes) || isNaN(año)) return null;
+                if (dia < 1 || dia > 31 || mes < 1 || mes > 12) return null;
+                return `${dia}/${mes}/${año}`;
+            } else {
+                return null;
+            }
+        }
+
+        const colorPalette = [
+            'rgba(255, 99, 132, 0.6)',
+            'rgba(54, 162, 235, 0.6)',
+            'rgba(255, 206, 86, 0.6)',
+            'rgba(75, 192, 192, 0.6)',
+            'rgba(153, 102, 255, 0.6)',
+            'rgba(255, 159, 64, 0.6)',
+            'rgba(199, 199, 199, 0.6)',
+            'rgba(83, 102, 255, 0.6)',
+            'rgba(255, 102, 255, 0.6)',
+            'rgba(102, 255, 102, 0.6)',
+            'rgba(255, 102, 102, 0.6)',
+            'rgba(102, 255, 255, 0.6)'
+        ];
+
+        function assignColors(labels) {
+            const colors = [];
+            for (let i = 0; i < labels.length; i++) {
+                colors.push(colorPalette[i % colorPalette.length]);
+            }
+            return colors;
+        }
+
+        const whiteBackgroundPlugin = {
+            id: 'custom_canvas_background_color',
+            beforeDraw: (chart, args, options) => {
+                const {ctx, width, height} = chart;
+                ctx.save();
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, width, height);
+                ctx.restore();
+            }
+        };
+
+        function sortDataDescending(labels, counts, colors) {
+            const combined = labels.map((label, index) => ({ label, count: counts[index], color: colors[index] }));
+            combined.sort((a, b) => b.count - a.count);
+            return {
+                labels: combined.map(item => item.label),
+                counts: combined.map(item => item.count),
+                colors: combined.map(item => item.color)
+            };
+        }
+
+        // **Datos locales originales**
+        let data = [
+            { id: generateUniqueId(), residente: "Elías Lara", fecha: "4/5/2024", franja: "6 a 8", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "María Folgado", fecha: "13/5/2024", franja: "14 a 16", lugar: "En mitad de la habitación", consecuencias: "TCE", sensor: "No hay sensor" },
+            // ... (Aquí el resto de registros locales originales que ya tenías)
+            { id: generateUniqueId(), residente: "Carmen Yela", fecha: "14/5/2024", franja: "10 a 12", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Isabel Sanz", fecha: "5/6/2024", franja: "16 a 18", lugar: "Dentro del baño de la habitación", consecuencias: "Herida", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Josefina Perdiguero", fecha: "21/6/2024", franja: "16 a 18", lugar: "Dentro del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" }
+        ];
+
+        const filterFranjaSelect = document.getElementById('filterFranjaSelect');
+        const filterLugarSelect = document.getElementById('filterLugarSelect');
+        const filterConsecuenciasSelect = document.getElementById('filterConsecuenciasSelect');
+        const filterResidenteSelect = document.getElementById('filterResidenteSelect');
+
+        const tbody = document.querySelector("#data-table tbody");
+        const ctx = document.getElementById('chart').getContext('2d');
+
+        const totalFallsElement = document.getElementById('totalFalls');
+        const visibleFallsElement = document.getElementById('visibleFalls');
+
+        let actionStack = [];
+        let currentChartType = 'franja';
+
+        function renderTable(filteredData) {
+            tbody.innerHTML = "";
+            filteredData.forEach(item => {
+                const row = `<tr>
+                    <td>${item.residente}</td>
+                    <td>${item.fecha}</td>
+                    <td>${item.franja}</td>
+                    <td>${item.lugar}</td>
+                    <td>${item.consecuencias}</td>
+                    <td>${item.sensor}</td>
+                    <td><button class="btn btn-danger btn-sm delete-btn" data-id="${item.id}">Eliminar</button></td>
+                </tr>`;
+                tbody.innerHTML += row;
+            });
+            updateCounters(filteredData);
+        }
+
+        function filterData() {
+            const selectedFranja = filterFranjaSelect.value;
+            const selectedLugar = filterLugarSelect.value;
+            const selectedConsecuencias = filterConsecuenciasSelect.value;
+            const selectedResidente = filterResidenteSelect.value;
+
+            const filtered = data.filter(item => {
+                return (
+                    (selectedFranja === "" || item.franja === selectedFranja) &&
+                    (selectedLugar === "" || item.lugar === selectedLugar) &&
+                    (selectedConsecuencias === "" || item.consecuencias === selectedConsecuencias) &&
+                    (selectedResidente === "" || item.residente === selectedResidente)
+                );
+            });
+            renderTable(filtered);
+            updateChart();
+        }
+
+        function initializeFilterSelects() {
+            const uniqueFranjas = [...new Set(data.map(d => d.franja))].sort((a, b) => {
+                const timeOrder = ["0 a 2","2 a 4","4 a 6","6 a 8","8 a 10","10 a 12","12 a 14","14 a 16","16 a 18","18 a 20","20 a 22","22 a 0"];
+                return timeOrder.indexOf(a) - timeOrder.indexOf(b);
+            });
+            const uniqueLugares = [...new Set(data.map(d => d.lugar))].sort();
+            const uniqueConsecuencias = [...new Set(data.map(d => d.consecuencias))].sort();
+            const uniqueResidentes = [...new Set(data.map(d => d.residente))].sort();
+            
+            uniqueFranjas.forEach(f => {
+                if (f !== '') {
+                    filterFranjaSelect.innerHTML += `<option value="${f}">${f}</option>`;
+                }
+            });
+
+            uniqueLugares.forEach(l => {
+                if (l !== '') {
+                    filterLugarSelect.innerHTML += `<option value="${l}">${l}</option>`;
+                }
+            });
+
+            uniqueConsecuencias.forEach(c => {
+                if (c !== '') {
+                    filterConsecuenciasSelect.innerHTML += `<option value="${c}">${c}</option>`;
+                }
+            });
+
+            uniqueResidentes.forEach(r => {
+                if (r !== '') {
+                    filterResidenteSelect.innerHTML += `<option value="${r}">${r}</option>`;
+                }
+            });
+        }
+
+        function initializeFormSelects() {
+            // Ya definido en HTML
+        }
+
+        function getCaidasPorFranja() {
+            const franjaCount = {};
+            data.forEach(item => {
+                franjaCount[item.franja] = (franjaCount[item.franja] || 0) + 1;
+            });
+            const timeOrder = ["0 a 2","2 a 4","4 a 6","6 a 8","8 a 10","10 a 12","12 a 14","14 a 16","16 a 18","18 a 20","20 a 22","22 a 0"];
+            const labels = timeOrder.filter(franja => franjaCount[franja]);
+            const counts = labels.map(franja => franjaCount[franja]);
+            const colors = assignColors(labels);
+            return { labels, counts, colors };
+        }
+
+        function getCaidasPorLugar() {
+            const lugarCount = {};
+            data.forEach(item => {
+                lugarCount[item.lugar] = (lugarCount[item.lugar] || 0) + 1;
+            });
+            let labels = Object.keys(lugarCount).sort();
+            let counts = labels.map(lugar => lugarCount[lugar]);
+            let colors = assignColors(labels);
+            const sorted = sortDataDescending(labels, counts, colors);
+            return sorted;
+        }
+
+        function getCaidasPorConsecuencias() {
+            const consecuenciasCount = {};
+            data.forEach(item => {
+                consecuenciasCount[item.consecuencias] = (consecuenciasCount[item.consecuencias] || 0) + 1;
+            });
+            let labels = Object.keys(consecuenciasCount).sort();
+            let counts = labels.map(consecuencia => consecuenciasCount[consecuencia]);
+            let colors = assignColors(labels);
+            const sorted = sortDataDescending(labels, counts, colors);
+            return sorted;
+        }
+
+        function getCaidasPorLugarHabitacion() {
+            const lugarHabitacionCount = {};
+            data.forEach(item => {
+                if (item.lugar.toLowerCase().includes("habitación")) {
+                    let lugarNormalized = item.lugar.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    let lugarEspecifico = lugarNormalized.replace(/al lado de la cama de la habitacion|a los pies de la cama de la habitacion|en mitad de la habitacion|puerta del baño de la habitacion|dentro del baño de la habitacion/g, match => {
+                        switch(match) {
+                            case "al lado de la cama de la habitacion": return "Al lado de la cama";
+                            case "a los pies de la cama de la habitacion": return "A los pies de la cama";
+                            case "en mitad de la habitacion": return "En mitad de la habitación";
+                            case "puerta del baño de la habitacion": return "Puerta del baño";
+                            case "dentro del baño de la habitacion": return "Dentro del baño";
+                            default: return match;
+                        }
+                    });
+                    lugarEspecifico = lugarEspecifico.charAt(0).toUpperCase() + lugarEspecifico.slice(1);
+                    lugarHabitacionCount[lugarEspecifico] = (lugarHabitacionCount[lugarEspecifico] || 0) + 1;
+                }
+            });
+            let labels = Object.keys(lugarHabitacionCount).sort();
+            let counts = labels.map(lugar => lugarHabitacionCount[lugar]);
+            let colors = assignColors(labels);
+            const sorted = sortDataDescending(labels, counts, colors);
+            return sorted;
+        }
+
+        function getCaidasPorResidenteMin3() {
+            const residenteCount = {};
+            data.forEach(item => {
+                residenteCount[item.residente] = (residenteCount[item.residente] || 0) + 1;
+            });
+            const filteredResidentes = Object.keys(residenteCount).filter(residente => residenteCount[residente] >= 3);
+            const residenteCountFiltered = {};
+            filteredResidentes.forEach(residente => {
+                residenteCountFiltered[residente] = residenteCount[residente];
+            });
+
+            let labels = Object.keys(residenteCountFiltered).sort();
+            let counts = labels.map(residente => residenteCountFiltered[residente]);
+            let colors = assignColors(labels);
+            const sorted = sortDataDescending(labels, counts, colors);
+            return sorted;
+        }
+
+        Chart.register(ChartDataLabels);
+
+        let chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Número de caídas por franja horaria',
+                    data: [],
+                    backgroundColor: [],
+                    borderColor: [],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'Número de caídas por franja horaria'
+                    },
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'end',
+                        formatter: function(value) {
+                            return value;
+                        },
+                        font: {
+                            weight: 'bold'
+                        },
+                        color: '#000'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        precision:0
+                    }
+                }
+            },
+            plugins: [ChartDataLabels, whiteBackgroundPlugin]
+        });
+
+        function renderChart(type) {
+            let chartData;
+            let chartLabel;
+            if (type === 'franja') {
+                chartData = getCaidasPorFranja();
+                chartLabel = 'Número de caídas por franja horaria';
+            } else if (type === 'lugar') {
+                chartData = getCaidasPorLugar();
+                chartLabel = 'Número de caídas por lugar';
+            } else if (type === 'consecuencias') {
+                chartData = getCaidasPorConsecuencias();
+                chartLabel = 'Número de caídas por consecuencias';
+            } else if (type === 'lugarHabitacion') {
+                chartData = getCaidasPorLugarHabitacion();
+                chartLabel = 'Número de caídas por lugar dentro de la habitación';
+            } else if (type === 'residente') {
+                chartData = getCaidasPorResidenteMin3();
+                chartLabel = 'Número de caídas por residente (3 o más caídas)';
+            }
+
+            chart.data.labels = chartData.labels;
+            chart.data.datasets[0].data = chartData.counts;
+            chart.data.datasets[0].backgroundColor = chartData.colors;
+            chart.data.datasets[0].borderColor = chartData.colors.map(color => color.replace('0.6', '1'));
+            chart.data.datasets[0].label = chartLabel;
+            chart.options.plugins.title.text = chartLabel;
+            chart.update();
+        }
+
+        function updateChart() {
+            renderChart(currentChartType);
+        }
+
+        function updateCounters(filteredData = data) {
+            const total = data.length;
+            totalFallsElement.innerText = total;
+            const visible = filteredData.length;
+            visibleFallsElement.innerText = visible;
+        }
+
+        filterFranjaSelect.addEventListener('change', filterData);
+        filterLugarSelect.addEventListener('change', filterData);
+        filterConsecuenciasSelect.addEventListener('change', filterData);
+        filterResidenteSelect.addEventListener('change', filterData);
+
+        document.getElementById('exportExcel').addEventListener('click', () => {
+            if (data.length === 0) {
+                alert('No hay datos para exportar.');
+                return;
+            }
+            const exportData = data.map(({id, ...rest}) => rest);
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Datos");
+            XLSX.writeFile(workbook, "RegistroCaidas.xlsx");
+        });
+
+        // **Funciones para sincronizar con la API**
+        async function fetchRemoteData() {
+            try {
+                const response = await fetch(apiUrl);
+                const remoteData = await response.json();
+                // Transformar data remota al formato local
+                const transformed = remoteData.map(row => ({
+                    id: row["id"] || generateUniqueId(), // Se asume que existe columna "id" en la hoja
+                    residente: row["Nombre del residente"] || "",
+                    fecha: parseFecha(row["Fecha"]) || "",
+                    franja: row["Franja horaria"] || "",
+                    lugar: row["Lugar"] || "",
+                    consecuencias: row["Consecuencias"] || "",
+                    sensor: row["Sensor de Movimiento"] || ""
+                }));
+                data = [...data, ...transformed];
+            } catch (error) {
+                console.error("Error al cargar datos remotos:", error);
+            }
+        }
+
+        async function addRecordToAPI(record) {
+            try {
+                const payload = [{
+                    id: record.id,
+                    "Nombre del residente": record.residente,
+                    "Fecha": record.fecha,
+                    "Franja horaria": record.franja,
+                    "Lugar": record.lugar,
+                    "Consecuencias": record.consecuencias,
+                    "Sensor de Movimiento": record.sensor
+                }];
+                const res = await fetch(apiUrl, {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) {
+                    console.error("No se pudo agregar el dato a la API.");
+                }
+            } catch(err) {
+                console.error("Error al agregar dato remoto:", err);
+            }
+        }
+
+        async function deleteRecordFromAPI(item) {
+            try {
+                // Se elimina buscando por id
+                const deleteUrl = `${apiUrl}/id/${encodeURIComponent(item.id)}`;
+                const res = await fetch(deleteUrl, {method: "DELETE"});
+                if (!res.ok) {
+                    console.error("No se pudo eliminar el dato de la API.");
+                }
+            } catch(err) {
+                console.error("Error al eliminar dato remoto:", err);
+            }
+        }
+
+        async function deleteAllFromAPI() {
+            // Borrar todos uno por uno
+            for (const item of data) {
+                await deleteRecordFromAPI(item);
+            }
+        }
+
+        async function addMultipleRecordsToAPI(records) {
+            if (records.length === 0) return;
+            const payload = records.map(r => ({
+                id: r.id,
+                "Nombre del residente": r.residente,
+                "Fecha": r.fecha,
+                "Franja horaria": r.franja,
+                "Lugar": r.lugar,
+                "Consecuencias": r.consecuencias,
+                "Sensor de Movimiento": r.sensor
+            }));
+            try {
+                const res = await fetch(apiUrl, {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) {
+                    console.error("No se pudo agregar datos a la API en lote.");
+                }
+            } catch(err) {
+                console.error("Error al agregar datos remotos en lote:", err);
+            }
+        }
+
+        document.getElementById('deleteAll').addEventListener('click', async () => {
+            if (data.length === 0) {
+                alert('No hay registros para eliminar.');
+                return;
+            }
+            if (confirm('¿Estás seguro de que deseas eliminar **todos** los registros? Esta acción no se puede deshacer.')) {
+                actionStack.push({ action: 'deleteAll', records: [...data] });
+                // Eliminar de la API
+                await deleteAllFromAPI();
+                data = [];
+                renderTable(data);
+                updateChart();
+                updateButtonStates();
+                alert('Todos los registros han sido eliminados.');
+            }
+        });
+
+        document.getElementById('undoAction').addEventListener('click', () => {
+            if (actionStack.length === 0) {
+                alert('No hay acciones para deshacer.');
+                return;
+            }
+            const lastAction = actionStack.pop();
+            if (lastAction.action === 'add') {
+                const index = data.findIndex(item => item.id === lastAction.record.id);
+                if (index !== -1) {
+                    data.splice(index, 1);
+                }
+            } else if (lastAction.action === 'delete') {
+                data.push(lastAction.record);
+            } else if (lastAction.action === 'deleteAll') {
+                data = lastAction.records;
+            }
+
+            filterData();
+            updateChart();
+            updateButtonStates();
+            alert('Última acción deshecha exitosamente. (Nota: Esto no deshace en la API)');
+        });
+
+        document.getElementById('registroCaidas').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            let residente = document.getElementById('nombreResidente').value.trim();
+            let fecha = document.getElementById('fechaCaida').value;
+            let franja = document.getElementById('franjaHoraria').value;
+            let lugar = document.getElementById('lugarCaida').value;
+            let consecuencias = document.getElementById('consecuencias').value;
+            let sensor = document.getElementById('sensorMovimiento').value;
+
+            if (!residente || !fecha || !franja || !lugar || !consecuencias || !sensor) {
+                alert('Por favor, completa todos los campos del formulario.');
+                return;
+            }
+
+            residente = residente.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\b\w/g, c => c.toUpperCase());
+
+            const fechaFormateada = parseFecha(fecha);
+            if (!fechaFormateada) {
+                alert('Por favor, ingresa una fecha válida.');
+                return;
+            }
+
+            const nuevoRegistro = {
+                id: generateUniqueId(),
+                residente,
+                fecha: fechaFormateada,
+                franja,
+                lugar,
+                consecuencias,
+                sensor
+            };
+
+            // Agregar al array local
+            data.push(nuevoRegistro);
+            actionStack.push({ action: 'add', record: nuevoRegistro });
+
+            // Agregar a la API
+            await addRecordToAPI(nuevoRegistro);
+
+            filterData();
+            updateChart();
+            this.reset();
+            updateButtonStates();
+            if (!filterResidenteSelect.querySelector(`option[value="${nuevoRegistro.residente}"]`)) {
+                filterResidenteSelect.innerHTML += `<option value="${nuevoRegistro.residente}">${nuevoRegistro.residente}</option>`;
+            }
+            alert('Caída registrada exitosamente');
+        });
+
+        tbody.addEventListener('click', async function(e) {
+            if (e.target && e.target.classList.contains('delete-btn')) {
+                const id = e.target.getAttribute('data-id');
+                if (confirm('¿Estás seguro de que deseas eliminar este registro?')) {
+                    const index = data.findIndex(item => item.id === id);
+                    if (index !== -1) {
+                        const deletedRecord = data[index];
+                        actionStack.push({ action: 'delete', record: deletedRecord });
+                        // Eliminar de la API
+                        await deleteRecordFromAPI(deletedRecord);
+                        data.splice(index, 1);
+                        filterData();
+                        updateChart();
+                        updateButtonStates();
+                        alert('Registro eliminado exitosamente');
+                    }
+                }
+            }
+        });
+
+        document.getElementById('btnFranja').addEventListener('click', function() {
+            currentChartType = 'franja';
+            setActiveButton(this);
+            updateChart();
+        });
+
+        document.getElementById('btnLugar').addEventListener('click', function() {
+            currentChartType = 'lugar';
+            setActiveButton(this);
+            updateChart();
+        });
+
+        document.getElementById('btnConsecuencias').addEventListener('click', function() {
+            currentChartType = 'consecuencias';
+            setActiveButton(this);
+            updateChart();
+        });
+
+        document.getElementById('btnLugarHabitacion').addEventListener('click', function() {
+            currentChartType = 'lugarHabitacion';
+            setActiveButton(this);
+            updateChart();
+        });
+
+        document.getElementById('btnResidente').addEventListener('click', function() {
+            currentChartType = 'residente';
+            setActiveButton(this);
+            updateChart();
+        });
+
+        function setActiveButton(button) {
+            const buttons = document.querySelectorAll('.chart-selector .btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+        }
+
+        function updateButtonStates() {
+            const undoButton = document.getElementById('undoAction');
+            const deleteAllButton = document.getElementById('deleteAll');
+
+            if (actionStack.length > 0) {
+                undoButton.disabled = false;
+            } else {
+                undoButton.disabled = true;
+            }
+
+            if (data.length > 0) {
+                deleteAllButton.disabled = false;
+            } else {
+                deleteAllButton.disabled = true;
+            }
+        }
+
+        function downloadChartAsImage() {
+            try {
+                const link = document.createElement('a');
+                link.href = chart.toBase64Image('image/png', 1);
+                link.download = `grafica_${currentChartType}_${new Date().toISOString().slice(0,10)}.png`;
+                link.click();
+                alert('La gráfica ha sido descargada exitosamente en formato PNG.');
+            } catch (error) {
+                console.error('Error al descargar la gráfica:', error);
+                alert('Hubo un error al intentar descargar la gráfica. Por favor, inténtalo de nuevo.');
+            }
+        }
+
+        document.getElementById('downloadChart').addEventListener('click', downloadChartAsImage);
+
+        // Importar desde Excel
+        const importExcelBtn = document.getElementById('importExcelBtn');
+        const importExcelInput = document.getElementById('importExcelInput');
+
+        importExcelBtn.addEventListener('click', () => {
+            importExcelInput.click();
+        });
+
+        importExcelInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const dataBuffer = e.target.result;
+                const dataView = new Uint8Array(dataBuffer);
+                const workbook = XLSX.read(dataView, {type: 'array', raw: false, cellDates: false});
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, {defval: "", raw: false, cellDates: false});
+                importDataFromExcel(jsonData);
+            };
+            reader.onerror = function(ex) {
+                console.error(ex);
+                alert('Hubo un error al leer el archivo.');
+            };
+            reader.readAsArrayBuffer(file);
+            importExcelInput.value = '';
+        });
+
+        async function importDataFromExcel(jsonData) {
+            if (jsonData.length === 0) {
+                alert('El archivo Excel está vacío o no contiene datos válidos.');
+                return;
+            }
+
+            const expectedColumns = ["Nombre del residente", "Fecha", "Franja horaria", "Lugar", "Consecuencias", "Sensor de Movimiento"];
+            const fileColumns = Object.keys(jsonData[0]);
+            const missingColumns = expectedColumns.filter(col => !fileColumns.includes(col));
+
+            if (missingColumns.length > 0) {
+                alert(`Faltan las siguientes columnas en el archivo Excel: ${missingColumns.join(", ")}`);
+                return;
+            }
+
+            let recordsAdded = 0;
+            let recordsSkipped = 0;
+            let errorMessages = [];
+            let newRecords = [];
+
+            jsonData.forEach((row, index) => {
+                try {
+                    let residente = row["Nombre del residente"].toString().trim();
+                    let fechaOriginal = row["Fecha"].toString().trim();
+                    let franja = row["Franja horaria"].toString().trim();
+                    let lugar = row["Lugar"].toString().trim();
+                    let consecuencias = row["Consecuencias"].toString().trim();
+                    let sensor = row["Sensor de Movimiento"].toString().trim();
+
+                    if (!residente || !fechaOriginal || !franja || !lugar || !consecuencias || !sensor) {
+                        recordsSkipped++;
+                        errorMessages.push(`Fila ${index + 2}: Campos obligatorios faltantes.`);
+                        return;
+                    }
+
+                    residente = residente.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\b\w/g, c => c.toUpperCase());
+                    const fechaFormateada = parseFecha(fechaOriginal);
+                    if (!fechaFormateada) {
+                        recordsSkipped++;
+                        errorMessages.push(`Fila ${index + 2}: Fecha inválida.`);
+                        return;
+                    }
+
+                    const duplicate = data.find(item => item.residente === residente && item.fecha === fechaFormateada && item.franja === franja && item.lugar === lugar);
+                    if (duplicate) {
+                        recordsSkipped++;
+                        errorMessages.push(`Fila ${index + 2}: Registro duplicado.`);
+                        return;
+                    }
+
+                    const nuevoRegistro = {
+                        id: generateUniqueId(),
+                        residente,
+                        fecha: fechaFormateada,
+                        franja,
+                        lugar,
+                        consecuencias,
+                        sensor
+                    };
+
+                    data.push(nuevoRegistro);
+                    actionStack.push({ action: 'add', record: nuevoRegistro });
+                    newRecords.push(nuevoRegistro);
+                    recordsAdded++;
+                } catch (error) {
+                    recordsSkipped++;
+                    errorMessages.push(`Fila ${index + 2}: Error al procesar el registro.`);
+                    console.error(`Error en la fila ${index + 2}:`, error);
+                }
+            });
+
+            actualizarFiltrosResidentes();
+            filterData();
+            updateChart();
+            updateButtonStates();
+
+            // Enviar todos los nuevos registros a la API
+            await addMultipleRecordsToAPI(newRecords);
+
+            let message = `Importación completada.\nRegistros añadidos: ${recordsAdded}\nRegistros omitidos: ${recordsSkipped}`;
+            if (errorMessages.length > 0) {
+                message += `\n\nErrores:\n${errorMessages.join("\n")}`;
+            }
+            alert(message);
+        }
+
+        function actualizarFiltrosResidentes() {
+            const uniqueResidentes = [...new Set(data.map(d => d.residente))].sort();
+            filterResidenteSelect.innerHTML = `<option value="">Todos</option>`;
+            uniqueResidentes.forEach(r => {
+                filterResidenteSelect.innerHTML += `<option value="${r}">${r}</option>`;
+            });
+        }
+
+        window.onload = async function() {
+            // Cargar datos remotos e integrarlos
+            await fetchRemoteData();
+            initializeFilterSelects();
+            initializeFormSelects();
+            renderChart(currentChartType);
+            renderTable(data);
+            updateCounters(data);
+            document.getElementById('btnFranja').classList.add('active');
+            updateButtonStates();
+
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        };
+    </script>
+</body>
+</html>
