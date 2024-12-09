@@ -177,7 +177,9 @@
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label for="nombreResidente" class="form-label">Nombre del Residente</label>
-                            <input type="text" class="form-control" id="nombreResidente" required>
+                            <!-- Añadimos el list al input y el datalist -->
+                            <input type="text" class="form-control" id="nombreResidente" list="residentesList" required>
+                            <datalist id="residentesList"></datalist>
                         </div>
                         <div class="col-md-4 mb-3">
                             <label for="fechaCaida" class="form-label">Fecha</label>
@@ -339,7 +341,7 @@
             };
         }
 
-        // Aquí restauramos TODOS los registros originales que proporcionaste
+        // Datos iniciales
         let data = [
             { id: generateUniqueId(), residente: "Elías Lara", fecha: "4/5/2024", franja: "6 a 8", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
             { id: generateUniqueId(), residente: "María Folgado", fecha: "13/5/2024", franja: "14 a 16", lugar: "En mitad de la habitación", consecuencias: "TCE", sensor: "No hay sensor" },
@@ -407,7 +409,7 @@
             { id: generateUniqueId(), residente: "Mercedes Reguera", fecha: "28/11/2024", franja: "22 a 00", lugar: "A los pies de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
             { id: generateUniqueId(), residente: "Elías Lara", fecha: "1/12/2024", franja: "8 a 10", lugar: "A los pies de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
 
-            // **Nuevos Registros Añadidos:**
+            // Nuevos Registros Añadidos
             { id: generateUniqueId(), residente: "Carmen Yela", fecha: "14/5/2024", franja: "10 a 12", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
             { id: generateUniqueId(), residente: "Isabel Sanz", fecha: "5/6/2024", franja: "16 a 18", lugar: "Dentro del baño de la habitación", consecuencias: "Herida", sensor: "No hay sensor" },
             { id: generateUniqueId(), residente: "Josefina Perdiguero", fecha: "21/6/2024", franja: "16 a 18", lugar: "Dentro del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" }
@@ -806,6 +808,18 @@
             alert('Última acción deshecha exitosamente. (Nota: Esto no deshace en la API)');
         });
 
+        // Nueva función para actualizar el datalist de residentes
+        function actualizarDatalistResidentes() {
+            const uniqueResidentes = [...new Set(data.map(d => d.residente))].sort();
+            const residentesList = document.getElementById('residentesList');
+            residentesList.innerHTML = "";
+            uniqueResidentes.forEach(res => {
+                const option = document.createElement('option');
+                option.value = res;
+                residentesList.appendChild(option);
+            });
+        }
+
         document.getElementById('registroCaidas').addEventListener('submit', async function(e) {
             e.preventDefault();
             let residente = document.getElementById('nombreResidente').value.trim();
@@ -845,6 +859,10 @@
             updateChart();
             this.reset();
             updateButtonStates();
+
+            // Actualizamos el datalist de residentes al añadir un nuevo registro
+            actualizarDatalistResidentes();
+
             if (!filterResidenteSelect.querySelector(`option[value="${nuevoRegistro.residente}"]`)) {
                 filterResidenteSelect.innerHTML += `<option value="${nuevoRegistro.residente}">${nuevoRegistro.residente}</option>`;
             }
@@ -1042,6 +1060,9 @@
             updateChart();
             updateButtonStates();
 
+            // Actualizamos el datalist de residentes tras la importación
+            actualizarDatalistResidentes();
+
             await addMultipleRecordsToAPI(newRecords);
 
             let message = `Importación completada.\nRegistros añadidos: ${recordsAdded}\nRegistros omitidos: ${recordsSkipped}`;
@@ -1068,6 +1089,9 @@
             updateCounters(data);
             document.getElementById('btnFranja').classList.add('active');
             updateButtonStates();
+
+            // Actualizar el datalist de residentes al inicio
+            actualizarDatalistResidentes();
 
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
             var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
