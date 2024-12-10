@@ -631,7 +631,9 @@
             const dateCount = {};
             dataSet.forEach(item => {
                 dateCount[item.fecha] = (dateCount[item.fecha] || 0) + 1;
-            });
+            }
+
+            );
 
             if (dataSet.length === 0) {
                 return { labels: [], counts: [] };
@@ -664,7 +666,7 @@
             dataSet.forEach(item => {
                 lugarCount[item.lugar] = (lugarCount[item.lugar] || 0) + 1;
             });
-            let labels = Object.keys(lugarCount).sort();
+            let labels = Object.keys(lugarCount).sort((a, b) => lugarCount[b] - lugarCount[a]); // Ordenar de mayor a menor
             let counts = labels.map(lugar => lugarCount[lugar]);
             return { labels, counts };
         }
@@ -674,7 +676,7 @@
             dataSet.forEach(item => {
                 consecuenciasCount[item.consecuencias] = (consecuenciasCount[item.consecuencias] || 0) + 1;
             });
-            let labels = Object.keys(consecuenciasCount).sort();
+            let labels = Object.keys(consecuenciasCount).sort((a, b) => consecuenciasCount[b] - consecuenciasCount[a]); // Ordenar de mayor a menor
             let counts = labels.map(consecuencia => consecuenciasCount[consecuencia]);
             return { labels, counts };
         }
@@ -698,7 +700,7 @@
                     lugarHabitacionCount[lugarEspecifico] = (lugarHabitacionCount[lugarEspecifico] || 0) + 1;
                 }
             });
-            let labels = Object.keys(lugarHabitacionCount).sort();
+            let labels = Object.keys(lugarHabitacionCount).sort((a, b) => lugarHabitacionCount[b] - lugarHabitacionCount[a]); // Ordenar de mayor a menor
             let counts = labels.map(l => lugarHabitacionCount[l]);
             return { labels, counts };
         }
@@ -709,8 +711,10 @@
                 residenteCount[item.residente] = (residenteCount[item.residente] || 0) + 1;
             });
             const filteredResidentes = Object.keys(residenteCount).filter(residente => residenteCount[residente] >= 3);
-            const counts = filteredResidentes.map(r => residenteCount[r]);
-            return { labels: filteredResidentes.sort(), counts };
+            const counts = filteredResidentes.map(r => residenteCount[r]).sort((a, b) => b - a); // Ordenar de mayor a menor
+            // Ordenar los residentes de acuerdo a los counts
+            filteredResidentes.sort((a, b) => residenteCount[b] - residenteCount[a]);
+            return { labels: filteredResidentes, counts };
         }
 
         Chart.register(ChartDataLabels);
@@ -862,8 +866,36 @@
                 };
             }
 
-            chart.config.type = 'bar';
-            chart.data.labels = labels;
+            // Ordenar las barras de mayor a menor excepto en 'franja' y 'fecha'
+            if (type !== 'franja' && type !== 'fecha') {
+                const sortedColors = assignColors(labels);
+                if (!compareMode) {
+                    const sorted = sortDataDescending(labels, counts1, sortedColors);
+                    chart.data.labels = sorted.labels;
+                    datasets[0].data = sorted.counts;
+                    datasets[0].backgroundColor = sorted.colors;
+                    datasets[0].borderColor = sorted.colors.map(c => c.replace('0.6','1'));
+                } else {
+                    // Para comparación, ordenar ambas series de acuerdo a Periodo 1
+                    const sorted = sortDataDescending(labels, counts1, sortedColors);
+                    chart.data.labels = sorted.labels;
+                    datasets[0].data = sorted.counts;
+                    datasets[0].backgroundColor = 'rgba(54, 162, 235, 0.6)';
+                    datasets[0].borderColor = 'rgba(54, 162, 235, 1)';
+                    datasets[1].data = sorted.labels.map(label => {
+                        const index = chartData2.labels.indexOf(label);
+                        return index !== -1 ? counts2[chartData2.labels.indexOf(label)] : 0;
+                    });
+                }
+            } else {
+                chart.data.labels = labels;
+                // Asignar colores sin ordenar
+                if (!compareMode) {
+                    datasets[0].backgroundColor = assignColors(labels);
+                    datasets[0].borderColor = colors;
+                }
+            }
+
             chart.data.datasets = datasets;
             chart.update();
         }
