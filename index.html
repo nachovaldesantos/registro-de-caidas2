@@ -41,385 +41,333 @@
         .card {
             margin-bottom: 20px;
         }
+        /* Estilo para el botón de cierre de sesión */
+        .logout-btn {
+            margin-left: 10px;
+        }
+        /* Ajuste del título en el encabezado */
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
     
-<header class="bg-primary text-white text-center py-4">
-    <button id="login-btn" class="btn btn-light">Iniciar Sesión</button>
-    <button id="logout-btn" class="btn btn-light" style="display: none;">Cerrar Sesión</button>
-</header>
-<div id="protected-content" style="display: none;">
+    <!-- Encabezado con título y botones de inicio/cierre de sesión -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Registro de Caídas de Residentes</a>
+            <div class="d-flex">
+                <button id="login-btn" class="btn btn-light me-2">Iniciar Sesión</button>
+                <button id="logout-btn" class="btn btn-light logout-btn" style="display: none;">Cerrar Sesión</button>
+            </div>
+        </div>
+    </nav>
     
-        <h1>Registro de Caídas de Residentes</h1>
-        <button id="login-btn" class="btn btn-light">Iniciar Sesión</button>
-        <button id="logout-btn" class="btn btn-light" style="display: none;">Cerrar Sesión</button>
-    </header>
-    <main class="container my-4">
-        <!-- Selector de Gráficas -->
-        <div class="card">
-            <div class="card-header">
-                <h5>Selecciona el Tipo de Gráfica</h5>
-            </div>
-            <div class="card-body chart-selector">
-                <button class="btn btn-outline-primary me-2" id="btnFranja">Franja Horaria</button>
-                <button class="btn btn-outline-primary me-2" id="btnLugar">Lugar</button>
-                <button class="btn btn-outline-primary me-2" id="btnConsecuencias">Consecuencias</button>
-                <button class="btn btn-outline-primary me-2" id="btnLugarHabitacion">Lugar dentro de la habitación</button>
-                <button class="btn btn-outline-primary me-2" id="btnResidente">Residente con 3+ Caídas</button>
-                <button class="btn btn-outline-primary" id="btnFecha">Caídas por fecha</button>
-            </div>
-        </div>
-
-        <!-- Gráfica y Botón de Descarga -->
-        <div class="card">
-            <div class="card-header">
-                <h5>Visualización de Datos</h5>
-            </div>
-            <div class="card-body">
-                <div class="chart-container">
-                    <canvas id="chart"></canvas>
-                </div>
-                <div class="text-center">
-                    <button id="downloadChart" class="btn btn-secondary mt-3">Descargar Gráfica</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Filtros -->
-        <div class="card">
-            <div class="card-header">
-                <h5>Filtros</h5>
-            </div>
-            <div class="card-body">
-                <!-- Primera fila: Fechas -->
-                <div class="row mb-3">
-                    <div class="col-md-2">
-                        <label for="filterFromDate" class="form-label">Desde:</label>
-                        <input type="date" id="filterFromDate" class="form-control">
-                    </div>
-                    <div class="col-md-2">
-                        <label for="filterToDate" class="form-label">Hasta:</label>
-                        <input type="date" id="filterToDate" class="form-control">
-                    </div>
-                    <div class="col-md-2">
-                        <label for="filterFromDateCompare" class="form-label">Desde (Comparación):</label>
-                        <input type="date" id="filterFromDateCompare" class="form-control">
-                    </div>
-                    <div class="col-md-2">
-                        <label for="filterToDateCompare" class="form-label">Hasta (Comparación):</label>
-                        <input type="date" id="filterToDateCompare" class="form-control">
-                    </div>
-                </div>
-
-                <!-- Segunda fila: Residente, Franja Horaria, Lugar, Consecuencias, Sensor -->
-                <div class="row mb-3">
-                    <div class="col-md-2">
-                        <label for="filterResidenteSelect" class="form-label">Residente:</label>
-                        <select id="filterResidenteSelect" class="form-select">
-                            <option value="">Todos</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label for="filterFranjaSelect" class="form-label">Franja horaria:</label>
-                        <select id="filterFranjaSelect" class="form-select">
-                            <option value="">Todas</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label for="filterLugarSelect" class="form-label">Lugar:</label>
-                        <select id="filterLugarSelect" class="form-select">
-                            <option value="">Todos</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label for="filterConsecuenciasSelect" class="form-label">Consecuencias:</label>
-                        <select id="filterConsecuenciasSelect" class="form-select">
-                            <option value="">Todas</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label for="filterSensorSelect" class="form-label">Sensor:</label>
-                        <select id="filterSensorSelect" class="form-select">
-                            <option value="">Todos</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Acciones y Exportaciones -->
-        <div class="card">
-            <div class="card-header">
-                <h5>Acciones</h5>
-            </div>
-            <div class="card-body text-end">
-                <button id="exportExcel" class="btn btn-success me-2">Exportar a Excel</button>
-                <button id="importExcelBtn" class="btn btn-info me-2" data-bs-toggle="tooltip" data-bs-placement="top" title="Formato de fecha esperado: d/m/yyyy o yyyy-mm-dd">Importar desde Excel</button>
-                <input type="file" id="importExcelInput" accept=".xlsx, .xls" style="display: none;">
-                <button id="deleteAll" class="btn btn-danger me-2">Eliminar Todos los Registros</button>
-                <div class="mt-2">
-                    <small class="text-muted">Formatos de fecha esperados: <strong>d/m/yyyy</strong> o <strong>yyyy-mm-dd</strong></small>
-                </div>
-            </div>
-        </div>
-
-        <!-- Contadores de Caídas -->
-        <div class="card">
-            <div class="card-header">
-                <h5>Contadores de Caídas</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-4">
-                        <h6>Total de Caídas Registradas: <span id="totalFalls">0</span></h6>
-                    </div>
-                    <div class="col-md-4">
-                        <h6>Caídas Visibles: <span id="visibleFalls">0</span></h6>
-                    </div>
-                    <div class="col-md-4">
-                        <h6>Residentes con al menos una caída: <span id="distinctResidents">0</span></h6>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tabla de Datos -->
-        <div class="card">
-            <div class="card-header">
-                <h5>Registro de Caídas</h5>
-            </div>
-            <div class="card-body table-container">
-                <table class="table table-striped" id="data-table">
-                    <thead>
-                        <tr>
-                            <th>Nombre del residente</th>
-                            <th>Fecha</th>
-                            <th>Franja horaria</th>
-                            <th>Lugar de la caída</th>
-                            <th>Consecuencias</th>
-                            <th>Sensor de movimiento</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Filas generadas por JavaScript -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Formulario de Registro de Caídas -->
-        <div class="card">
-            <div class="card-header">
-                <h5>Registrar Nueva Caída</h5>
-            </div>
-            <div class="card-body">
-                <form id="registroCaidas">
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label for="nombreResidente" class="form-label">Nombre del Residente</label>
-                            <input type="text" class="form-control" id="nombreResidente" list="residentesList" required>
-                            <datalist id="residentesList"></datalist>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="fechaCaida" class="form-label">Fecha</label>
-                            <input type="date" class="form-control" id="fechaCaida" required>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="franjaHoraria" class="form-label">Franja Horaria</label>
-                            <select class="form-select" id="franjaHoraria" required>
-                                <option value="">Selecciona una opción</option>
-                                <option value="0 a 2">0 a 2</option>
-                                <option value="2 a 4">2 a 4</option>
-                                <option value="4 a 6">4 a 6</option>
-                                <option value="6 a 8">6 a 8</option>
-                                <option value="8 a 10">8 a 10</option>
-                                <option value="10 a 12">10 a 12</option>
-                                <option value="12 a 14">12 a 14</option>
-                                <option value="14 a 16">14 a 16</option>
-                                <option value="16 a 18">16 a 18</option>
-                                <option value="18 a 20">18 a 20</option>
-                                <option value="20 a 22">20 a 22</option>
-                                <option value="22 a 0">22 a 0</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label for="lugarCaida" class="form-label">Lugar</label>
-                            <select class="form-select" id="lugarCaida" required>
-                                <option value="">Selecciona una opción</option>
-                                <option value="Al lado de la cama de la habitación">Al lado de la cama de la habitación</option>
-                                <option value="A los pies de la cama de la habitación">A los pies de la cama de la habitación</option>
-                                <option value="En mitad de la habitación">En mitad de la habitación</option>
-                                <option value="Puerta del baño de la habitación">Puerta del baño de la habitación</option>
-                                <option value="Dentro del baño de la habitación">Dentro del baño de la habitación</option>
-                                <option value="Pasillo">Pasillo</option>
-                                <option value="Salón de la planta primera">Salón de la planta primera</option>
-                                <option value="Salón de la planta segunda">Salón de la planta segunda</option>
-                                <option value="Recepción">Recepción</option>
-                                <option value="Comedor">Comedor</option>
-                                <option value="Capilla">Capilla</option>
-                                <option value="Sala de actividades">Sala de actividades</option>
-                                <option value="Dentro del ascensor">Dentro del ascensor</option>
-                                <option value="Terraza">Terraza</option>
-                                <option value="Jardín">Jardín</option>
-                                <option value="Salón fondo planta 1">Salón fondo planta 1</option>
-                                <option value="Salón fondo planta 2">Salón fondo planta 2</option>
-                                <option value="Sala común planta 3">Sala común planta 3</option>
-                                <option value="Dentro del baño geriátrico">Dentro del baño geriátrico</option>
-                                <option value="Planta primera">Planta primera</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="consecuencias" class="form-label">Consecuencias</label>
-                            <select class="form-select" id="consecuencias" required>
-                                <option value="">Selecciona una opción</option>
-                                <option value="Sin consecuencias">Sin consecuencias</option>
-                                <option value="Herida">Herida</option>
-                                <option value="Contusión">Contusión</option>
-                                <option value="TCE">TCE</option>
-                                <option value="Fractura">Fractura</option>
-                                <option value="Fractura cadera">Fractura cadera</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="sensorMovimiento" class="form-label">Sensor de Movimiento</label>
-                            <select class="form-select" id="sensorMovimiento" required>
-                                <option value="">Selecciona una opción</option>
-                                <option value="Desconocido">Desconocido</option>
-                                <option value="Se oyó">Se oyó</option>
-                                <option value="No se oyó">No se oyó</option>
-                                <option value="No hay sensor">No hay sensor</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="text-center">
-                        <button type="submit" class="btn btn-primary">Registrar Caída</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Contenido Protegido (Opcional) -->
-        <div id="protected-content" style="display: none;">
-            <!-- Contenido que solo usuarios autenticados pueden ver -->
+    <div id="protected-content" style="display: none;">
+        <main class="container my-4">
+            <!-- Selector de Gráficas -->
             <div class="card">
                 <div class="card-header">
-                    <h5>Contenido Protegido</h5>
+                    <h5>Selecciona el Tipo de Gráfica</h5>
                 </div>
-                <div class="card-body">
-                    <p>Este contenido solo es visible para usuarios autenticados.</p>
+                <div class="card-body chart-selector">
+                    <button class="btn btn-outline-primary me-2" id="btnFranja">Franja Horaria</button>
+                    <button class="btn btn-outline-primary me-2" id="btnLugar">Lugar</button>
+                    <button class="btn btn-outline-primary me-2" id="btnConsecuencias">Consecuencias</button>
+                    <button class="btn btn-outline-primary me-2" id="btnLugarHabitacion">Lugar dentro de la habitación</button>
+                    <button class="btn btn-outline-primary me-2" id="btnResidente">Residente con 3+ Caídas</button>
+                    <button class="btn btn-outline-primary" id="btnFecha">Caídas por fecha</button>
                 </div>
             </div>
-        </div>
+
+            <!-- Gráfica y Botón de Descarga -->
+            <div class="card">
+                <div class="card-header">
+                    <h5>Visualización de Datos</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chart"></canvas>
+                    </div>
+                    <div class="text-center">
+                        <button id="downloadChart" class="btn btn-secondary mt-3">Descargar Gráfica</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtros -->
+            <div class="card">
+                <div class="card-header">
+                    <h5>Filtros</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Primera fila: Fechas -->
+                    <div class="row mb-3">
+                        <div class="col-md-2">
+                            <label for="filterFromDate" class="form-label">Desde:</label>
+                            <input type="date" id="filterFromDate" class="form-control">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="filterToDate" class="form-label">Hasta:</label>
+                            <input type="date" id="filterToDate" class="form-control">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="filterFromDateCompare" class="form-label">Desde (Comparación):</label>
+                            <input type="date" id="filterFromDateCompare" class="form-control">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="filterToDateCompare" class="form-label">Hasta (Comparación):</label>
+                            <input type="date" id="filterToDateCompare" class="form-control">
+                        </div>
+                    </div>
+
+                    <!-- Segunda fila: Residente, Franja Horaria, Lugar, Consecuencias, Sensor -->
+                    <div class="row mb-3">
+                        <div class="col-md-2">
+                            <label for="filterResidenteSelect" class="form-label">Residente:</label>
+                            <select id="filterResidenteSelect" class="form-select">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="filterFranjaSelect" class="form-label">Franja horaria:</label>
+                            <select id="filterFranjaSelect" class="form-select">
+                                <option value="">Todas</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="filterLugarSelect" class="form-label">Lugar:</label>
+                            <select id="filterLugarSelect" class="form-select">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="filterConsecuenciasSelect" class="form-label">Consecuencias:</label>
+                            <select id="filterConsecuenciasSelect" class="form-select">
+                                <option value="">Todas</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="filterSensorSelect" class="form-label">Sensor:</label>
+                            <select id="filterSensorSelect" class="form-select">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Acciones y Exportaciones -->
+            <div class="card">
+                <div class="card-header">
+                    <h5>Acciones</h5>
+                </div>
+                <div class="card-body text-end">
+                    <button id="exportExcel" class="btn btn-success me-2">Exportar a Excel</button>
+                    <button id="importExcelBtn" class="btn btn-info me-2" data-bs-toggle="tooltip" data-bs-placement="top" title="Formato de fecha esperado: d/m/yyyy o yyyy-mm-dd">Importar desde Excel</button>
+                    <input type="file" id="importExcelInput" accept=".xlsx, .xls" style="display: none;">
+                    <button id="deleteAll" class="btn btn-danger me-2">Eliminar Todos los Registros</button>
+                    <div class="mt-2">
+                        <small class="text-muted">Formatos de fecha esperados: <strong>d/m/yyyy</strong> o <strong>yyyy-mm-dd</strong></small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contadores de Caídas -->
+            <div class="card">
+                <div class="card-header">
+                    <h5>Contadores de Caídas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h6>Total de Caídas Registradas: <span id="totalFalls">0</span></h6>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Caídas Visibles: <span id="visibleFalls">0</span></h6>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Residentes con al menos una caída: <span id="distinctResidents">0</span></h6>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla de Datos -->
+            <div class="card">
+                <div class="card-header">
+                    <h5>Registro de Caídas</h5>
+                </div>
+                <div class="card-body table-container">
+                    <table class="table table-striped" id="data-table">
+                        <thead>
+                            <tr>
+                                <th>Nombre del residente</th>
+                                <th>Fecha</th>
+                                <th>Franja horaria</th>
+                                <th>Lugar de la caída</th>
+                                <th>Consecuencias</th>
+                                <th>Sensor de movimiento</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Filas generadas por JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Formulario de Registro de Caídas -->
+            <div class="card">
+                <div class="card-header">
+                    <h5>Registrar Nueva Caída</h5>
+                </div>
+                <div class="card-body">
+                    <form id="registroCaidas">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="nombreResidente" class="form-label">Nombre del Residente</label>
+                                <input type="text" class="form-control" id="nombreResidente" list="residentesList" required>
+                                <datalist id="residentesList"></datalist>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="fechaCaida" class="form-label">Fecha</label>
+                                <input type="date" class="form-control" id="fechaCaida" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="franjaHoraria" class="form-label">Franja Horaria</label>
+                                <select class="form-select" id="franjaHoraria" required>
+                                    <option value="">Selecciona una opción</option>
+                                    <option value="0 a 2">0 a 2</option>
+                                    <option value="2 a 4">2 a 4</option>
+                                    <option value="4 a 6">4 a 6</option>
+                                    <option value="6 a 8">6 a 8</option>
+                                    <option value="8 a 10">8 a 10</option>
+                                    <option value="10 a 12">10 a 12</option>
+                                    <option value="12 a 14">12 a 14</option>
+                                    <option value="14 a 16">14 a 16</option>
+                                    <option value="16 a 18">16 a 18</option>
+                                    <option value="18 a 20">18 a 20</option>
+                                    <option value="20 a 22">20 a 22</option>
+                                    <option value="22 a 0">22 a 0</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="lugarCaida" class="form-label">Lugar</label>
+                                <select class="form-select" id="lugarCaida" required>
+                                    <option value="">Selecciona una opción</option>
+                                    <option value="Al lado de la cama de la habitación">Al lado de la cama de la habitación</option>
+                                    <option value="A los pies de la cama de la habitación">A los pies de la cama de la habitación</option>
+                                    <option value="En mitad de la habitación">En mitad de la habitación</option>
+                                    <option value="Puerta del baño de la habitación">Puerta del baño de la habitación</option>
+                                    <option value="Dentro del baño de la habitación">Dentro del baño de la habitación</option>
+                                    <option value="Pasillo">Pasillo</option>
+                                    <option value="Salón de la planta primera">Salón de la planta primera</option>
+                                    <option value="Salón de la planta segunda">Salón de la planta segunda</option>
+                                    <option value="Recepción">Recepción</option>
+                                    <option value="Comedor">Comedor</option>
+                                    <option value="Capilla">Capilla</option>
+                                    <option value="Sala de actividades">Sala de actividades</option>
+                                    <option value="Dentro del ascensor">Dentro del ascensor</option>
+                                    <option value="Terraza">Terraza</option>
+                                    <option value="Jardín">Jardín</option>
+                                    <option value="Salón fondo planta 1">Salón fondo planta 1</option>
+                                    <option value="Salón fondo planta 2">Salón fondo planta 2</option>
+                                    <option value="Sala común planta 3">Sala común planta 3</option>
+                                    <option value="Dentro del baño geriátrico">Dentro del baño geriátrico</option>
+                                    <option value="Planta primera">Planta primera</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="consecuencias" class="form-label">Consecuencias</label>
+                                <select class="form-select" id="consecuencias" required>
+                                    <option value="">Selecciona una opción</option>
+                                    <option value="Sin consecuencias">Sin consecuencias</option>
+                                    <option value="Herida">Herida</option>
+                                    <option value="Contusión">Contusión</option>
+                                    <option value="TCE">TCE</option>
+                                    <option value="Fractura">Fractura</option>
+                                    <option value="Fractura cadera">Fractura cadera</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="sensorMovimiento" class="form-label">Sensor de Movimiento</label>
+                                <select class="form-select" id="sensorMovimiento" required>
+                                    <option value="">Selecciona una opción</option>
+                                    <option value="Desconocido">Desconocido</option>
+                                    <option value="Se oyó">Se oyó</option>
+                                    <option value="No se oyó">No se oyó</option>
+                                    <option value="No hay sensor">No hay sensor</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary">Registrar Caída</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Contenido Protegido (Opcional) -->
+            <!-- Este contenido ya está incluido dentro de protected-content -->
+
+        </main>
+    </div>
     
-    </main>
-</div>
-<script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-    const loginBtn = document.getElementById("login-btn");
-    const logoutBtn = document.getElementById("logout-btn");
-    const protectedContent = document.getElementById("protected-content");
-
-    // Inicializa Netlify Identity
-    if (window.netlifyIdentity) {
-        window.netlifyIdentity.on("init", user => {
-            if (user) {
-                loginBtn.style.display = "none";
-                logoutBtn.style.display = "inline-block";
-                protectedContent.style.display = "block";
-            } else {
-                loginBtn.style.display = "inline-block";
-                logoutBtn.style.display = "none";
-                protectedContent.style.display = "none";
-            }
-        });
-
-        // Abrir el widget de inicio de sesión
-        loginBtn.addEventListener("click", () => {
-            window.netlifyIdentity.open();
-        });
-
-        // Cerrar sesión
-        logoutBtn.addEventListener("click", () => {
-            window.netlifyIdentity.logout();
-        });
-
-        // Acciones tras iniciar sesión
-        window.netlifyIdentity.on("login", user => {
-            loginBtn.style.display = "none";
-            logoutBtn.style.display = "inline-block";
-            protectedContent.style.display = "block";
-        });
-
-        // Acciones tras cerrar sesión
-        window.netlifyIdentity.on("logout", () => {
-            loginBtn.style.display = "inline-block";
-            logoutBtn.style.display = "none";
-            protectedContent.style.display = "none";
-        });
-    }
-});
-</script>
-</div>
-
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- Netlify Identity Widget -->
     <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+    
     <script>
-      if (window.netlifyIdentity) {
-        window.netlifyIdentity.on('init', user => {
-          if (!user) {
-            window.netlifyIdentity.on('login', () => {
-              document.location.href = '/';
-            });
-          }
-        });
-      }
-    </script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const loginBtn = document.getElementById("login-btn");
+            const logoutBtn = document.getElementById("logout-btn");
+            const protectedContent = document.getElementById("protected-content");
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const loginBtn = document.getElementById('login-btn');
-            const logoutBtn = document.getElementById('logout-btn');
-            const protectedContent = document.getElementById('protected-content');
-
+            // Inicializa Netlify Identity
             if (window.netlifyIdentity) {
-                window.netlifyIdentity.on('init', user => {
+                window.netlifyIdentity.on("init", user => {
                     if (user) {
-                        loginBtn.style.display = 'none';
-                        logoutBtn.style.display = 'inline-block';
-                        protectedContent.style.display = 'block';
+                        loginBtn.style.display = "none";
+                        logoutBtn.style.display = "inline-block";
+                        protectedContent.style.display = "block";
                     } else {
-                        loginBtn.style.display = 'inline-block';
-                        logoutBtn.style.display = 'none';
-                        protectedContent.style.display = 'none';
+                        loginBtn.style.display = "inline-block";
+                        logoutBtn.style.display = "none";
+                        protectedContent.style.display = "none";
                     }
                 });
 
-                loginBtn.addEventListener('click', () => {
+                // Abrir el widget de inicio de sesión
+                loginBtn.addEventListener("click", () => {
                     window.netlifyIdentity.open();
                 });
 
-                logoutBtn.addEventListener('click', () => {
+                // Cerrar sesión
+                logoutBtn.addEventListener("click", () => {
                     window.netlifyIdentity.logout();
                 });
 
-                window.netlifyIdentity.on('login', user => {
-                    loginBtn.style.display = 'none';
-                    logoutBtn.style.display = 'inline-block';
-                    protectedContent.style.display = 'block';
+                // Acciones tras iniciar sesión
+                window.netlifyIdentity.on("login", user => {
+                    loginBtn.style.display = "none";
+                    logoutBtn.style.display = "inline-block";
+                    protectedContent.style.display = "block";
+                    window.netlifyIdentity.close();
                 });
 
-                window.netlifyIdentity.on('logout', () => {
-                    loginBtn.style.display = 'inline-block';
-                    logoutBtn.style.display = 'none';
-                    protectedContent.style.display = 'none';
+                // Acciones tras cerrar sesión
+                window.netlifyIdentity.on("logout", () => {
+                    loginBtn.style.display = "inline-block";
+                    logoutBtn.style.display = "none";
+                    protectedContent.style.display = "none";
                 });
             }
         });
