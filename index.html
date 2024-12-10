@@ -84,6 +84,7 @@
                 <h5>Filtros</h5>
             </div>
             <div class="card-body">
+                <!-- Primera fila: Fechas -->
                 <div class="row mb-3">
                     <div class="col-md-2">
                         <label for="filterFromDate" class="form-label">Desde:</label>
@@ -92,6 +93,24 @@
                     <div class="col-md-2">
                         <label for="filterToDate" class="form-label">Hasta:</label>
                         <input type="date" id="filterToDate" class="form-control">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filterFromDateCompare" class="form-label">Desde (Comparación):</label>
+                        <input type="date" id="filterFromDateCompare" class="form-control">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filterToDateCompare" class="form-label">Hasta (Comparación):</label>
+                        <input type="date" id="filterToDateCompare" class="form-control">
+                    </div>
+                </div>
+
+                <!-- Segunda fila: Residente, Franja Horaria, Lugar, Consecuencias, Sensor -->
+                <div class="row mb-3">
+                    <div class="col-md-2">
+                        <label for="filterResidenteSelect" class="form-label">Residente:</label>
+                        <select id="filterResidenteSelect" class="form-select">
+                            <option value="">Todos</option>
+                        </select>
                     </div>
                     <div class="col-md-2">
                         <label for="filterFranjaSelect" class="form-label">Franja horaria:</label>
@@ -112,8 +131,8 @@
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <label for="filterResidenteSelect" class="form-label">Residente:</label>
-                        <select id="filterResidenteSelect" class="form-select">
+                        <label for="filterSensorSelect" class="form-label">Sensor:</label>
+                        <select id="filterSensorSelect" class="form-select">
                             <option value="">Todos</option>
                         </select>
                     </div>
@@ -255,8 +274,6 @@
                                 <option value="TCE">TCE</option>
                                 <option value="Fractura">Fractura</option>
                                 <option value="Fractura cadera">Fractura cadera</option>
-                                <option value="Fractura costal">Fractura costal</option>
-                                <option value="Fractura de muñeca">Fractura de muñeca</option>
                             </select>
                         </div>
                         <div class="col-md-4 mb-3">
@@ -320,16 +337,13 @@
             }
         }
 
-        // Función para codificar el nombre del residente
         function convertNameToCode(fullName) {
             const parts = fullName.trim().split(" ");
             if (parts.length < 2) return fullName; 
             const lastName = parts[parts.length - 1]; 
             const firstName = parts[0]; 
-
             const lastNameCode = lastName.charAt(0).toUpperCase() + lastName.slice(1,3).toLowerCase();
             const firstNameCode = firstName.charAt(0).toUpperCase() + firstName.slice(1,2).toLowerCase();
-
             return lastNameCode + firstNameCode;
         }
 
@@ -448,20 +462,24 @@
             { id: generateUniqueId(), residente: "Josefina Perdiguero", fecha: "21/6/2024", franja: "16 a 18", lugar: "Dentro del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" }
         ];
 
-        // Codificar nombres de los datos precargados
+        // Reemplazar "Fractura costal" y "Fractura de muñeca" por "Fractura" en datos locales
         data = data.map(item => {
-            return {
-                ...item,
-                residente: convertNameToCode(item.residente)
+            let consecuencias = item.consecuencias;
+            if (consecuencias === "Fractura costal" || consecuencias === "Fractura de muñeca") {
+                consecuencias = "Fractura";
             }
+            return { ...item, consecuencias };
         });
 
         const filterFranjaSelect = document.getElementById('filterFranjaSelect');
         const filterLugarSelect = document.getElementById('filterLugarSelect');
         const filterConsecuenciasSelect = document.getElementById('filterConsecuenciasSelect');
         const filterResidenteSelect = document.getElementById('filterResidenteSelect');
+        const filterSensorSelect = document.getElementById('filterSensorSelect');
         const filterFromDate = document.getElementById('filterFromDate');
         const filterToDate = document.getElementById('filterToDate');
+        const filterFromDateCompare = document.getElementById('filterFromDateCompare');
+        const filterToDateCompare = document.getElementById('filterToDateCompare');
 
         const tbody = document.querySelector("#data-table tbody");
         const ctx = document.getElementById('chart').getContext('2d');
@@ -478,6 +496,7 @@
             const selectedLugar = filterLugarSelect.value;
             const selectedConsecuencias = filterConsecuenciasSelect.value;
             const selectedResidente = filterResidenteSelect.value;
+            const selectedSensor = filterSensorSelect.value;
             const fromDateValue = filterFromDate.value;
             const toDateValue = filterToDate.value;
 
@@ -485,9 +504,9 @@
                 let pass = (selectedFranja === "" || item.franja === selectedFranja) &&
                            (selectedLugar === "" || item.lugar === selectedLugar) &&
                            (selectedConsecuencias === "" || item.consecuencias === selectedConsecuencias) &&
-                           (selectedResidente === "" || item.residente === selectedResidente);
+                           (selectedResidente === "" || item.residente === selectedResidente) &&
+                           (selectedSensor === "" || item.sensor === selectedSensor);
 
-                // Filtrado por fechas si se han seleccionado ambas
                 if (fromDateValue && toDateValue) {
                     const itemDate = dateStrToDate(item.fecha);
                     const fromDateObj = new Date(fromDateValue);
@@ -499,6 +518,37 @@
             });
             renderTable(filteredData);
             updateChart();
+        }
+
+        function filterDataForComparison() {
+            const fromDateCompareValue = filterFromDateCompare.value;
+            const toDateCompareValue = filterToDateCompare.value;
+
+            const selectedFranja = filterFranjaSelect.value;
+            const selectedLugar = filterLugarSelect.value;
+            const selectedConsecuencias = filterConsecuenciasSelect.value;
+            const selectedResidente = filterResidenteSelect.value;
+            const selectedSensor = filterSensorSelect.value;
+
+            let filtered = data.filter(item => {
+                let pass = (selectedFranja === "" || item.franja === selectedFranja) &&
+                           (selectedLugar === "" || item.lugar === selectedLugar) &&
+                           (selectedConsecuencias === "" || item.consecuencias === selectedConsecuencias) &&
+                           (selectedResidente === "" || item.residente === selectedResidente) &&
+                           (selectedSensor === "" || item.sensor === selectedSensor);
+
+                if (fromDateCompareValue && toDateCompareValue) {
+                    const itemDate = dateStrToDate(item.fecha);
+                    const fromDateObj = new Date(fromDateCompareValue);
+                    const toDateObj = new Date(toDateCompareValue);
+                    if (itemDate < fromDateObj || itemDate > toDateObj) pass = false;
+                } else {
+                    return false;
+                }
+
+                return pass;
+            });
+            return filtered;
         }
 
         function renderTable(fData) {
@@ -526,6 +576,7 @@
             const uniqueLugares = [...new Set(data.map(d => d.lugar))].sort();
             const uniqueConsecuencias = [...new Set(data.map(d => d.consecuencias))].sort();
             const uniqueResidentes = [...new Set(data.map(d => d.residente))].sort();
+            const uniqueSensor = [...new Set(data.map(d => d.sensor))].sort();
             
             uniqueFranjas.forEach(f => {
                 if (f !== '') {
@@ -550,9 +601,14 @@
                     filterResidenteSelect.innerHTML += `<option value="${r}">${r}</option>`;
                 }
             });
+
+            uniqueSensor.forEach(s => {
+                if (s !== '') {
+                    filterSensorSelect.innerHTML += `<option value="${s}">${s}</option>`;
+                }
+            });
         }
 
-        // Genera un rango completo de fechas entre dos fechas
         function generateDateRange(startDate, endDate) {
             const dates = [];
             const currentDate = new Date(startDate);
@@ -566,89 +622,61 @@
             return dates;
         }
 
-        // Función para histograma de fechas
-        function getCaidasPorFecha() {
+        function getCaidasPorFecha(dataSet) {
             const dateCount = {};
-            filteredData.forEach(item => {
+            dataSet.forEach(item => {
                 dateCount[item.fecha] = (dateCount[item.fecha] || 0) + 1;
             });
 
-            const fromDateValue = filterFromDate.value;
-            const toDateValue = filterToDate.value;
-
-            let minDate = null;
-            let maxDate = null;
-
-            if (filteredData.length > 0) {
-                const dates = filteredData.map(d => dateStrToDate(d.fecha));
-                dates.sort((a,b) => a - b);
-                minDate = dates[0];
-                maxDate = dates[dates.length - 1];
-            } else {
-                // Si no hay datos filtrados
-                return { labels: [], counts: [], colors: [] };
+            if (dataSet.length === 0) {
+                return { labels: [], counts: [] };
             }
-
-            // Aplica rango de fecha del filtro si existe
-            if (fromDateValue && toDateValue) {
-                const fromDateObj = new Date(fromDateValue);
-                const toDateObj = new Date(toDateValue);
-                if (fromDateObj > minDate) minDate = fromDateObj;
-                if (toDateObj < maxDate) maxDate = toDateObj;
-            }
+            const dates = dataSet.map(d => dateStrToDate(d.fecha));
+            dates.sort((a,b) => a - b);
+            const minDate = dates[0];
+            const maxDate = dates[dates.length - 1];
 
             const fullDateRange = generateDateRange(minDate, maxDate);
             const labels = fullDateRange;
             const counts = labels.map(d => dateCount[d] || 0);
 
-            // Asignar colores por mes
-            const monthlyColors = labels.map(label => {
-                const [day, month, year] = label.split('/').map(n => parseInt(n,10));
-                return colorPalette[(month - 1) % colorPalette.length];
-            });
-
-            return { labels, counts, colors: monthlyColors };
+            return { labels, counts };
         }
 
-        function getCaidasPorFranja() {
+        function getCaidasPorFranja(dataSet) {
             const franjaCount = {};
-            filteredData.forEach(item => {
+            dataSet.forEach(item => {
                 franjaCount[item.franja] = (franjaCount[item.franja] || 0) + 1;
             });
             const timeOrder = ["0 a 2","2 a 4","4 a 6","6 a 8","8 a 10","10 a 12","12 a 14","14 a 16","16 a 18","18 a 20","20 a 22","22 a 0"];
             const labels = timeOrder.filter(franja => franjaCount[franja]);
             const counts = labels.map(franja => franjaCount[franja]);
-            const colors = assignColors(labels);
-            return { labels, counts, colors };
+            return { labels, counts };
         }
 
-        function getCaidasPorLugar() {
+        function getCaidasPorLugar(dataSet) {
             const lugarCount = {};
-            filteredData.forEach(item => {
+            dataSet.forEach(item => {
                 lugarCount[item.lugar] = (lugarCount[item.lugar] || 0) + 1;
             });
             let labels = Object.keys(lugarCount).sort();
             let counts = labels.map(lugar => lugarCount[lugar]);
-            let colors = assignColors(labels);
-            const sorted = sortDataDescending(labels, counts, colors);
-            return sorted;
+            return { labels, counts };
         }
 
-        function getCaidasPorConsecuencias() {
+        function getCaidasPorConsecuencias(dataSet) {
             const consecuenciasCount = {};
-            filteredData.forEach(item => {
+            dataSet.forEach(item => {
                 consecuenciasCount[item.consecuencias] = (consecuenciasCount[item.consecuencias] || 0) + 1;
             });
             let labels = Object.keys(consecuenciasCount).sort();
             let counts = labels.map(consecuencia => consecuenciasCount[consecuencia]);
-            let colors = assignColors(labels);
-            const sorted = sortDataDescending(labels, counts, colors);
-            return sorted;
+            return { labels, counts };
         }
 
-        function getCaidasPorLugarHabitacion() {
+        function getCaidasPorLugarHabitacion(dataSet) {
             const lugarHabitacionCount = {};
-            filteredData.forEach(item => {
+            dataSet.forEach(item => {
                 if (item.lugar.toLowerCase().includes("habitación")) {
                     let lugarNormalized = item.lugar.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                     let lugarEspecifico = lugarNormalized.replace(/al lado de la cama de la habitacion|a los pies de la cama de la habitacion|en mitad de la habitacion|puerta del baño de la habitacion|dentro del baño de la habitacion/g, match => {
@@ -666,28 +694,18 @@
                 }
             });
             let labels = Object.keys(lugarHabitacionCount).sort();
-            let counts = labels.map(lugar => lugarHabitacionCount[lugar]);
-            let colors = assignColors(labels);
-            const sorted = sortDataDescending(labels, counts, colors);
-            return sorted;
+            let counts = labels.map(l => lugarHabitacionCount[l]);
+            return { labels, counts };
         }
 
-        function getCaidasPorResidenteMin3() {
+        function getCaidasPorResidenteMin3(dataSet) {
             const residenteCount = {};
-            filteredData.forEach(item => {
+            dataSet.forEach(item => {
                 residenteCount[item.residente] = (residenteCount[item.residente] || 0) + 1;
             });
             const filteredResidentes = Object.keys(residenteCount).filter(residente => residenteCount[residente] >= 3);
-            const residenteCountFiltered = {};
-            filteredResidentes.forEach(residente => {
-                residenteCountFiltered[residente] = residenteCount[residente];
-            });
-
-            let labels = Object.keys(residenteCountFiltered).sort();
-            let counts = labels.map(residente => residenteCountFiltered[residente]);
-            let colors = assignColors(labels);
-            const sorted = sortDataDescending(labels, counts, colors);
-            return sorted;
+            const counts = filteredResidentes.map(r => residenteCount[r]);
+            return { labels: filteredResidentes.sort(), counts };
         }
 
         Chart.register(ChartDataLabels);
@@ -712,7 +730,8 @@
                     },
                     title: {
                         display: true,
-                        text: 'Número de caídas por franja horaria'
+                        text: 'Número de caídas por franja horaria',
+                        padding: { top: 50, bottom: 10 }
                     },
                     datalabels: {
                         anchor: 'end',
@@ -736,44 +755,109 @@
             plugins: [ChartDataLabels, whiteBackgroundPlugin]
         });
 
-        function renderChart(type) {
-            let chartData;
-            let chartLabel;
-            let chartType = 'bar';
-
+        function getChartDataForType(type, dataSet) {
+            let rawData;
             if (type === 'franja') {
-                chartData = getCaidasPorFranja();
-                chartLabel = 'Número de caídas por franja horaria';
-                chartType = 'bar';
+                rawData = getCaidasPorFranja(dataSet);
             } else if (type === 'lugar') {
-                chartData = getCaidasPorLugar();
-                chartLabel = 'Número de caídas por lugar';
-                chartType = 'bar';
+                rawData = getCaidasPorLugar(dataSet);
             } else if (type === 'consecuencias') {
-                chartData = getCaidasPorConsecuencias();
-                chartLabel = 'Número de caídas por consecuencias';
-                chartType = 'bar';
+                rawData = getCaidasPorConsecuencias(dataSet);
             } else if (type === 'lugarHabitacion') {
-                chartData = getCaidasPorLugarHabitacion();
-                chartLabel = 'Número de caídas por lugar dentro de la habitación';
-                chartType = 'bar';
+                rawData = getCaidasPorLugarHabitacion(dataSet);
             } else if (type === 'residente') {
-                chartData = getCaidasPorResidenteMin3();
-                chartLabel = 'Número de caídas por residente (3 o más caídas)';
-                chartType = 'bar';
+                rawData = getCaidasPorResidenteMin3(dataSet);
             } else if (type === 'fecha') {
-                chartData = getCaidasPorFecha();
-                chartLabel = 'Número de caídas por fecha';
-                chartType = 'bar';
+                rawData = getCaidasPorFecha(dataSet);
+            }
+            if (!rawData.labels) {
+                rawData.labels = [];
+                rawData.counts = [];
+            }
+            return rawData;
+        }
+
+        function renderChart(type) {
+            const compareMode = (filterFromDateCompare.value && filterToDateCompare.value);
+
+            let chartData1 = getChartDataForType(type, filteredData);
+            let labels = chartData1.labels;
+            let counts1 = chartData1.counts;
+
+            let chartData2 = { labels: [], counts: [] };
+            let counts2 = [];
+            if (compareMode) {
+                const secondFilteredData = filterDataForComparison();
+                chartData2 = getChartDataForType(type, secondFilteredData);
+
+                const allLabels = new Set([...labels, ...chartData2.labels]);
+                labels = [...allLabels];
+                labels.sort();
+
+                const total1 = counts1.reduce((a,b) => a+b,0);
+                const total2 = chartData2.counts.reduce((a,b) => a+b,0);
+
+                const map1 = {};
+                chartData1.labels.forEach((l,i) => { map1[l] = chartData1.counts[i]; });
+                const map2 = {};
+                chartData2.labels.forEach((l,i) => { map2[l] = chartData2.counts[i]; });
+
+                counts1 = labels.map(l => total1 > 0 ? (map1[l]||0)*100/total1 : 0);
+                counts2 = labels.map(l => total2 > 0 ? (map2[l]||0)*100/total2 : 0);
             }
 
-            chart.config.type = chartType;
-            chart.data.labels = chartData.labels;
-            chart.data.datasets[0].data = chartData.counts;
-            chart.data.datasets[0].backgroundColor = chartData.colors;
-            chart.data.datasets[0].borderColor = chartData.colors.map(color => color.replace('0.6', '1'));
-            chart.data.datasets[0].label = chartLabel;
-            chart.options.plugins.title.text = chartLabel;
+            let chartLabel = '';
+            if (type === 'franja') chartLabel = 'Número de caídas por franja horaria';
+            else if (type === 'lugar') chartLabel = 'Número de caídas por lugar';
+            else if (type === 'consecuencias') chartLabel = 'Número de caídas por consecuencias';
+            else if (type === 'lugarHabitacion') chartLabel = 'Número de caídas por lugar dentro de la habitación';
+            else if (type === 'residente') chartLabel = 'Número de caídas por residente (3 o más caídas)';
+            else if (type === 'fecha') chartLabel = 'Número de caídas por fecha';
+
+            let datasets = [];
+            const colors = assignColors(labels).map(c => c.replace('0.6','1'));
+
+            if (!compareMode) {
+                chart.options.plugins.legend.display = false;
+                datasets.push({
+                    label: chartLabel,
+                    data: counts1,
+                    backgroundColor: assignColors(labels),
+                    borderColor: colors,
+                    borderWidth: 1
+                });
+                chart.options.plugins.title.text = chartLabel + ` (Total: ${counts1.reduce((a,b)=>a+b,0)})`;
+                chart.options.plugins.title.padding = { top: 50, bottom: 10 };
+                chart.options.scales.y.beginAtZero = true;
+                chart.options.plugins.datalabels.formatter = function(value) { return value; };
+            } else {
+                chart.options.plugins.legend.display = true;
+                datasets.push({
+                    label: `Periodo 1 (%)`,
+                    data: counts1,
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                });
+                datasets.push({
+                    label: `Periodo 2 (%)`,
+                    data: counts2,
+                    backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                });
+
+                chart.options.plugins.title.text = chartLabel + ' (Comparación en %)';
+                chart.options.plugins.title.padding = { top: 50, bottom: 10 };
+                chart.options.scales.y.beginAtZero = true;
+                chart.options.plugins.datalabels.formatter = function(value) {
+                    return value.toFixed(1) + '%';
+                };
+            }
+
+            chart.config.type = 'bar';
+            chart.data.labels = labels;
+            chart.data.datasets = datasets;
             chart.update();
         }
 
@@ -795,8 +879,11 @@
         filterLugarSelect.addEventListener('change', filterData);
         filterConsecuenciasSelect.addEventListener('change', filterData);
         filterResidenteSelect.addEventListener('change', filterData);
+        filterSensorSelect.addEventListener('change', filterData);
         filterFromDate.addEventListener('change', filterData);
         filterToDate.addEventListener('change', filterData);
+        filterFromDateCompare.addEventListener('change', updateChart);
+        filterToDateCompare.addEventListener('change', updateChart);
 
         document.getElementById('exportExcel').addEventListener('click', () => {
             if (data.length === 0) {
@@ -823,7 +910,17 @@
                     consecuencias: row["Consecuencias"] || "",
                     sensor: row["Sensor de Movimiento"] || ""
                 }));
-                data = [...data, ...transformed];
+
+                // Reemplazar "Fractura costal" y "Fractura de muñeca" por "Fractura" en datos remotos
+                const normalized = transformed.map(item => {
+                    let c = item.consecuencias;
+                    if (c === "Fractura costal" || c === "Fractura de muñeca") {
+                        c = "Fractura";
+                    }
+                    return { ...item, consecuencias: c };
+                });
+
+                data = [...data, ...normalized];
             } catch (error) {
                 console.error("Error al cargar datos remotos:", error);
             }
@@ -945,6 +1042,11 @@
             }
 
             residente = convertNameToCode(residente);
+
+            // Normalizar consecuencias por si alguien introdujera manualmente
+            if (consecuencias === "Fractura costal" || consecuencias === "Fractura de muñeca") {
+                consecuencias = "Fractura";
+            }
 
             const nuevoRegistro = {
                 id: generateUniqueId(),
@@ -1126,8 +1228,12 @@
                         return;
                     }
 
-                    // Codificar el nombre
                     residente = convertNameToCode(residente);
+
+                    // Normalizar las consecuencias importadas
+                    if (consecuencias === "Fractura costal" || consecuencias === "Fractura de muñeca") {
+                        consecuencias = "Fractura";
+                    }
 
                     const duplicate = data.find(item => item.residente === residente && item.fecha === fechaFormateada && item.franja === franja && item.lugar === lugar);
                     if (duplicate) {
