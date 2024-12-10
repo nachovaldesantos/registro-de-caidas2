@@ -47,8 +47,16 @@
         }
         /* Ajuste del título en el encabezado */
         .navbar-brand {
-            font-size: 1.5rem;
+            font-size: 1.75rem; /* Tamaño de letra aumentado */
             font-weight: bold;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+        /* Asegurar que la barra de navegación sea relativa para posicionar correctamente el título */
+        .navbar {
+            position: relative;
         }
     </style>
 </head>
@@ -58,7 +66,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container-fluid">
             <a class="navbar-brand" href="#">Registro de Caídas de Residentes</a>
-            <div class="d-flex">
+            <div class="d-flex ms-auto">
                 <button id="login-btn" class="btn btn-light me-2">Iniciar Sesión</button>
                 <button id="logout-btn" class="btn btn-light logout-btn" style="display: none;">Cerrar Sesión</button>
             </div>
