@@ -129,6 +129,10 @@
                             <label for="filterToDateCompare" class="form-label">Hasta (Comparación):</label>
                             <input type="date" id="filterToDateCompare" class="form-control">
                         </div>
+                        <!-- Botón para Borrar Filtros -->
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button id="clearFiltersBtn" class="btn btn-warning">Borrar Filtros</button>
+                        </div>
                     </div>
 
                     <!-- Segunda fila: Residente, Franja Horaria, Lugar, Consecuencias, Sensor -->
@@ -163,6 +167,8 @@
                                 <option value="">Todos</option>
                             </select>
                         </div>
+                        <!-- Espacio para alineación o futuros elementos -->
+                        <div class="col-md-2"></div>
                     </div>
                 </div>
             </div>
@@ -1128,6 +1134,28 @@
                 residentesList.appendChild(option);
             });
         }
+
+        // Función para limpiar todos los filtros
+        function clearAllFilters() {
+            // Restablecer campos de fecha
+            filterFromDate.value = "";
+            filterToDate.value = "";
+            filterFromDateCompare.value = "";
+            filterToDateCompare.value = "";
+
+            // Restablecer selecciones
+            filterFranjaSelect.value = "";
+            filterLugarSelect.value = "";
+            filterConsecuenciasSelect.value = "";
+            filterResidenteSelect.value = "";
+            filterSensorSelect.value = "";
+
+            // Actualizar la tabla y la gráfica
+            filterData();
+        }
+
+        // Añadir evento al botón "Borrar Filtros"
+        document.getElementById('clearFiltersBtn').addEventListener('click', clearAllFilters);
 
         document.getElementById('registroCaidas').addEventListener('submit', async function(e) {
             e.preventDefault();
