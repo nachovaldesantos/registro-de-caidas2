@@ -634,6 +634,9 @@
         }
 
         function renderTable(fData) {
+            // Ordenar fData por fecha de la más antigua a la más reciente
+            fData.sort((a, b) => dateStrToDate(a.fecha) - dateStrToDate(b.fecha));
+
             tbody.innerHTML = "";
             fData.forEach(item => {
                 const row = `<tr>
