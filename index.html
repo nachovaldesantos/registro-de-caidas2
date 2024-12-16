@@ -1135,20 +1135,17 @@
             });
         }
 
-        // Función para limpiar todos los filtros
+        // Función para limpiar todos los filtros y establecer el período predeterminado
         function clearAllFilters() {
-            // Restablecer campos de fecha
-            filterFromDate.value = "";
-            filterToDate.value = "";
-            filterFromDateCompare.value = "";
-            filterToDateCompare.value = "";
-
             // Restablecer selecciones
             filterFranjaSelect.value = "";
             filterLugarSelect.value = "";
             filterConsecuenciasSelect.value = "";
             filterResidenteSelect.value = "";
             filterSensorSelect.value = "";
+
+            // Establecer el período predeterminado
+            setDefaultDateFilters();
 
             // Actualizar la tabla y la gráfica
             filterData();
@@ -1413,9 +1410,51 @@
             });
         }
 
+        // Función para establecer los filtros de fecha predeterminados (1 de mayo al día actual)
+        function setDefaultDateFilters() {
+            const today = new Date();
+            const currentYear = today.getFullYear();
+            const mayFirst = new Date(currentYear, 4, 1); // Mes 4 = Mayo (0-indexado)
+
+            // Formatear fechas en yyyy-mm-dd
+            const formatDate = (date) => {
+                const yyyy = date.getFullYear();
+                const mm = String(date.getMonth() + 1).padStart(2, '0'); // Mes es 0-indexado
+                const dd = String(date.getDate()).padStart(2, '0');
+                return `${yyyy}-${mm}-${dd}`;
+            };
+
+            // Si hoy es antes del 1 de mayo, usar 1 de mayo del año anterior
+            if (today < mayFirst) {
+                mayFirst.setFullYear(currentYear - 1);
+            }
+
+            filterFromDate.value = formatDate(mayFirst);
+            filterToDate.value = formatDate(today);
+
+            // Opcional: también puedes establecer los filtros de comparación si lo deseas
+            // filterFromDateCompare.value = "";
+            // filterToDateCompare.value = "";
+        }
+
+        // Función para descargar la gráfica como imagen
+        function downloadChartAsImage() {
+            try {
+                const link = document.createElement('a');
+                link.href = chart.toBase64Image('image/png', 1);
+                link.download = `grafica_${currentChartType}_${new Date().toISOString().slice(0,10)}.png`;
+                link.click();
+                alert('La gráfica ha sido descargada exitosamente en formato PNG.');
+            } catch (error) {
+                console.error('Error al descargar la gráfica:', error);
+                alert('Hubo un error al intentar descargar la gráfica. Por favor, inténtalo de nuevo.');
+            }
+        }
+
         window.onload = async function() {
             await fetchRemoteData();
             initializeFilterSelects();
+            setDefaultDateFilters(); // Establecer filtros de fecha predeterminados al cargar
             filterData();
             updateChart();
             updateCounters(data);
