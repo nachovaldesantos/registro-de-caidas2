@@ -890,7 +890,7 @@
             const compareMode = (filterFromDateCompare.value && filterToDateCompare.value);
 
             let chartData1 = getChartDataForType(type, filteredData);
-            let labels = chartData1.labels;
+            let labels1 = chartData1.labels;
             let counts1 = chartData1.counts;
 
             let chartData2 = { labels: [], counts: [] };
@@ -899,20 +899,52 @@
                 const secondFilteredData = filterDataForComparison();
                 chartData2 = getChartDataForType(type, secondFilteredData);
 
-                const allLabels = new Set([...labels, ...chartData2.labels]);
-                labels = [...allLabels];
-                labels.sort();
+                const allLabelsSet = new Set([...chartData1.labels, ...chartData2.labels]);
+                const allLabels = Array.from(allLabelsSet);
 
+                // Ordenar etiquetas de manera consistente, por ejemplo, basado en el tipo de gráfica
+                if (type === 'franja') {
+                    const timeOrder = ["0 a 2","2 a 4","4 a 6","6 a 8","8 a 10","10 a 12","12 a 14","14 a 16","16 a 18","18 a 20","20 a 22","22 a 0"];
+                    allLabels.sort((a, b) => timeOrder.indexOf(a) - timeOrder.indexOf(b));
+                } else if (type === 'fecha') {
+                    allLabels.sort((a, b) => {
+                        const dateA = dateStrToDate(a);
+                        const dateB = dateStrToDate(b);
+                        return dateA - dateB;
+                    });
+                } else {
+                    allLabels.sort();
+                }
+
+                // Crear mapas para cada período
+                const map1 = new Map();
+                chartData1.labels.forEach((label, index) => {
+                    map1.set(label, chartData1.counts[index]);
+                });
+
+                const map2 = new Map();
+                chartData2.labels.forEach((label, index) => {
+                    map2.set(label, chartData2.counts[index]);
+                });
+
+                // Calcular totales para cada período
                 const total1 = counts1.reduce((a,b) => a+b,0);
                 const total2 = chartData2.counts.reduce((a,b) => a+b,0);
 
-                const map1 = {};
-                chartData1.labels.forEach((l,i) => { map1[l] = chartData1.counts[i]; });
-                const map2 = {};
-                chartData2.labels.forEach((l,i) => { map2[l] = chartData2.counts[i]; });
+                // Calcular porcentajes por etiqueta para cada período
+                const percentage1 = allLabels.map(label => {
+                    const count = map1.get(label) || 0;
+                    return total1 > 0 ? ((count / total1) * 100).toFixed(1) : 0;
+                });
 
-                counts1 = labels.map(l => total1 > 0 ? (map1[l]||0)*100/total1 : 0);
-                counts2 = labels.map(l => total2 > 0 ? (map2[l]||0)*100/total2 : 0);
+                const percentage2 = allLabels.map(label => {
+                    const count = map2.get(label) || 0;
+                    return total2 > 0 ? ((count / total2) * 100).toFixed(1) : 0;
+                });
+
+                labels1 = allLabels;
+                counts1 = percentage1;
+                counts2 = percentage2;
             }
 
             let chartLabel = '';
@@ -924,7 +956,7 @@
             else if (type === 'fecha') chartLabel = 'Número de caídas por fecha';
 
             let datasets = [];
-            const colors = assignColors(labels).map(c => c.replace('0.6','1'));
+            const colors = assignColors(labels1).map(c => c.replace('0.6','1'));
 
             if (!compareMode) {
                 // Sin comparación: no hay leyenda, un solo dataset
@@ -932,11 +964,11 @@
                 datasets.push({
                     label: chartLabel,
                     data: counts1,
-                    backgroundColor: assignColors(labels),
+                    backgroundColor: assignColors(labels1),
                     borderColor: colors,
                     borderWidth: 1
                 });
-                chart.options.plugins.title.text = [chartLabel + ` (Total: ${counts1.reduce((a,b)=>a+b,0)})`, '     ', '     ', '     ']; // Agregar tres líneas vacías con espacios
+                chart.options.plugins.title.text = [chartLabel + ` (Total: ${counts1.reduce((a,b)=>parseFloat(a)+parseFloat(b),0)})`, '     ', '     ', '     ']; // Agregar tres líneas vacías con espacios
                 chart.options.plugins.title.padding = { top: 50, bottom: 10 };
                 chart.options.scales.y.beginAtZero = true;
                 chart.options.plugins.datalabels.formatter = function(value) { return value; };
@@ -962,36 +994,36 @@
                 chart.options.plugins.title.padding = { top: 50, bottom: 10 };
                 chart.options.scales.y.beginAtZero = true;
                 chart.options.plugins.datalabels.formatter = function(value) {
-                    return value.toFixed(1) + '%';
+                    return value + '%';
                 };
             }
 
             // Ordenar las barras de mayor a menor excepto en 'franja' y 'fecha'
             if (type !== 'franja' && type !== 'fecha') {
-                const sortedColors = assignColors(labels);
+                const sortedColors = assignColors(labels1);
                 if (!compareMode) {
-                    const sorted = sortDataDescending(labels, counts1, sortedColors);
+                    const sorted = sortDataDescending(labels1, counts1, sortedColors);
                     chart.data.labels = sorted.labels;
                     datasets[0].data = sorted.counts;
                     datasets[0].backgroundColor = sorted.colors;
                     datasets[0].borderColor = sorted.colors.map(c => c.replace('0.6','1'));
                 } else {
                     // Para comparación, ordenar ambas series de acuerdo a Periodo 1
-                    const sorted = sortDataDescending(labels, counts1, sortedColors);
+                    const sorted = sortDataDescending(labels1, counts1, sortedColors);
                     chart.data.labels = sorted.labels;
                     datasets[0].data = sorted.counts;
                     datasets[0].backgroundColor = 'rgba(54, 162, 235, 0.6)';
                     datasets[0].borderColor = 'rgba(54, 162, 235, 1)';
                     datasets[1].data = sorted.labels.map(label => {
-                        const index = chartData2.labels.indexOf(label);
-                        return index !== -1 ? counts2[chartData2.labels.indexOf(label)] : 0;
+                        const index = labels1.indexOf(label);
+                        return counts2[index] || 0;
                     });
                 }
             } else {
-                chart.data.labels = labels;
+                chart.data.labels = labels1;
                 // Asignar colores sin ordenar
                 if (!compareMode) {
-                    datasets[0].backgroundColor = assignColors(labels);
+                    datasets[0].backgroundColor = assignColors(labels1);
                     datasets[0].borderColor = colors;
                 }
             }
