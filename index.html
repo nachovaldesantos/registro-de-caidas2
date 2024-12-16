@@ -1041,7 +1041,7 @@
         function setPeriodo1() {
             const today = new Date();
             const currentYear = today.getFullYear();
-            const mayFirst = new Date(currentYear, 4, 1); // Mes 4 = Mayo (0-indexed)
+            const mayFirst = new Date(currentYear, 4, 1); // Mes 4 = Mayo (0-indexado)
 
             // Si hoy es antes del 1 de mayo, usar 1 de mayo del año anterior
             if (today < mayFirst) {
@@ -1078,11 +1078,11 @@
             const fromDate1 = new Date(mayFirstCurrent);
             const toDate1 = new Date(today);
 
-            // Período 2: 1 de mayo de dos años atrás hasta 1 de mayo del año anterior
-            const fromDate2 = new Date(mayFirstCurrent);
+            // Período 2: 1 de mayo de un año atrás hasta la misma fecha que Período 1 menos un año
+            const fromDate2 = new Date(fromDate1);
             fromDate2.setFullYear(fromDate2.getFullYear() - 1);
-            const toDate2 = new Date(mayFirstCurrent);
-            toDate2.setDate(toDate2.getDate() - 1); // Un día antes del inicio de Período 1
+            const toDate2 = new Date(toDate1);
+            toDate2.setFullYear(toDate2.getFullYear() - 1);
 
             // Formatear fechas en yyyy-mm-dd
             const formatDate = (date) => {
@@ -1552,7 +1552,7 @@
             setDefaultDateFilters(); // Establecer filtros de fecha predeterminados al cargar
             filterData();
             updateChart();
-            updateCounters(data);
+            updateCounters(filteredData); // Asegurarse de que los contadores reflejen los datos filtrados
             document.getElementById('btnFranja').classList.add('active');
             updateButtonStates();
             actualizarDatalistResidentes();
