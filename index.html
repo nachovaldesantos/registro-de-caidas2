@@ -58,6 +58,13 @@
         .navbar {
             position: relative;
         }
+        /* Estilos para los botones Período 1 y Período 2 */
+        .period-buttons {
+            margin-bottom: 15px;
+        }
+        .period-buttons .btn {
+            margin-right: 10px;
+        }
     </style>
 </head>
 <body>
@@ -111,6 +118,11 @@
                     <h5>Filtros</h5>
                 </div>
                 <div class="card-body">
+                    <!-- Botones de Período -->
+                    <div class="period-buttons text-center">
+                        <button id="periodo1Btn" class="btn btn-primary">Período 1</button>
+                        <button id="periodo2Btn" class="btn btn-secondary">Período 2</button>
+                    </div>
                     <!-- Primera fila: Fechas -->
                     <div class="row mb-3">
                         <div class="col-md-2">
@@ -575,6 +587,9 @@
         const visibleFallsElement = document.getElementById('visibleFalls');
         const distinctResidentsElement = document.getElementById('distinctResidents');
 
+        const periodo1Btn = document.getElementById('periodo1Btn');
+        const periodo2Btn = document.getElementById('periodo2Btn');
+
         let actionStack = [];
         let currentChartType = 'franja';
         let filteredData = [...data]; 
@@ -1009,6 +1024,87 @@
         filterFromDateCompare.addEventListener('change', updateChart);
         filterToDateCompare.addEventListener('change', updateChart);
 
+        // Event listeners para los botones Período 1 y Período 2
+        periodo1Btn.addEventListener('click', function() {
+            setPeriodo1();
+            setActivePeriodoButton(this);
+            updateChart();
+        });
+
+        periodo2Btn.addEventListener('click', function() {
+            setPeriodo2();
+            setActivePeriodoButton(this);
+            updateChart();
+        });
+
+        // Función para configurar Período 1
+        function setPeriodo1() {
+            const today = new Date();
+            const currentYear = today.getFullYear();
+            const mayFirst = new Date(currentYear, 4, 1); // Mes 4 = Mayo (0-indexed)
+
+            // Si hoy es antes del 1 de mayo, usar 1 de mayo del año anterior
+            if (today < mayFirst) {
+                mayFirst.setFullYear(currentYear - 1);
+            }
+
+            // Formatear fechas en yyyy-mm-dd
+            const formatDate = (date) => {
+                const yyyy = date.getFullYear();
+                const mm = String(date.getMonth() + 1).padStart(2, '0'); // Mes es 0-indexado
+                const dd = String(date.getDate()).padStart(2, '0');
+                return `${yyyy}-${mm}-${dd}`;
+            };
+
+            // Establecer los filtros
+            filterFromDate.value = formatDate(mayFirst);
+            filterToDate.value = formatDate(today);
+            filterFromDateCompare.value = "";
+            filterToDateCompare.value = "";
+        }
+
+        // Función para configurar Período 2
+        function setPeriodo2() {
+            const today = new Date();
+            const currentYear = today.getFullYear();
+            const mayFirstCurrent = new Date(currentYear, 4, 1); // 1 de mayo del año actual
+
+            // Ajustar mayFirstCurrent si hoy es antes del 1 de mayo
+            if (today < mayFirstCurrent) {
+                mayFirstCurrent.setFullYear(currentYear - 1);
+            }
+
+            // Período 1: 1 de mayo del año anterior más cercano hasta hoy
+            const fromDate1 = new Date(mayFirstCurrent);
+            const toDate1 = new Date(today);
+
+            // Período 2: 1 de mayo de dos años atrás hasta 1 de mayo del año anterior
+            const fromDate2 = new Date(mayFirstCurrent);
+            fromDate2.setFullYear(fromDate2.getFullYear() - 1);
+            const toDate2 = new Date(mayFirstCurrent);
+            toDate2.setDate(toDate2.getDate() - 1); // Un día antes del inicio de Período 1
+
+            // Formatear fechas en yyyy-mm-dd
+            const formatDate = (date) => {
+                const yyyy = date.getFullYear();
+                const mm = String(date.getMonth() + 1).padStart(2, '0'); // Mes es 0-indexado
+                const dd = String(date.getDate()).padStart(2, '0');
+                return `${yyyy}-${mm}-${dd}`;
+            };
+
+            // Establecer los filtros
+            filterFromDate.value = formatDate(fromDate1);
+            filterToDate.value = formatDate(toDate1);
+            filterFromDateCompare.value = formatDate(fromDate2);
+            filterToDateCompare.value = formatDate(toDate2);
+        }
+
+        function setActivePeriodoButton(activeButton) {
+            const buttons = document.querySelectorAll('.period-buttons .btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            activeButton.classList.add('active');
+        }
+
         document.getElementById('exportExcel').addEventListener('click', () => {
             if (data.length === 0) {
                 alert('No hay datos para exportar.');
@@ -1416,6 +1512,11 @@
             const currentYear = today.getFullYear();
             const mayFirst = new Date(currentYear, 4, 1); // Mes 4 = Mayo (0-indexado)
 
+            // Si hoy es antes del 1 de mayo, usar 1 de mayo del año anterior
+            if (today < mayFirst) {
+                mayFirst.setFullYear(currentYear - 1);
+            }
+
             // Formatear fechas en yyyy-mm-dd
             const formatDate = (date) => {
                 const yyyy = date.getFullYear();
@@ -1424,17 +1525,11 @@
                 return `${yyyy}-${mm}-${dd}`;
             };
 
-            // Si hoy es antes del 1 de mayo, usar 1 de mayo del año anterior
-            if (today < mayFirst) {
-                mayFirst.setFullYear(currentYear - 1);
-            }
-
+            // Establecer los filtros
             filterFromDate.value = formatDate(mayFirst);
             filterToDate.value = formatDate(today);
-
-            // Opcional: también puedes establecer los filtros de comparación si lo deseas
-            // filterFromDateCompare.value = "";
-            // filterToDateCompare.value = "";
+            filterFromDateCompare.value = "";
+            filterToDateCompare.value = "";
         }
 
         // Función para descargar la gráfica como imagen
