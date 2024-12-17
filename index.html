@@ -114,12 +114,10 @@
                     <h5>Filtros</h5>
                 </div>
                 <div class="card-body">
-                    <!-- Botones de Período -->
                     <div class="period-buttons text-center">
                         <button id="periodo1Btn" class="btn btn-primary">Período 1</button>
                         <button id="periodo2Btn" class="btn btn-secondary">Período 2</button>
                     </div>
-                    <!-- Primera fila: Fechas -->
                     <div class="row mb-3">
                         <div class="col-md-2">
                             <label for="filterFromDate" class="form-label">Desde:</label>
@@ -137,13 +135,11 @@
                             <label for="filterToDateCompare" class="form-label">Hasta (Comparación):</label>
                             <input type="date" id="filterToDateCompare" class="form-control">
                         </div>
-                        <!-- Botón para Borrar Filtros -->
                         <div class="col-md-4 d-flex align-items-end">
                             <button id="clearFiltersBtn" class="btn btn-warning">Borrar Filtros</button>
                         </div>
                     </div>
 
-                    <!-- Segunda fila: Residente, Franja Horaria, Lugar, Consecuencias, Sensor -->
                     <div class="row mb-3">
                         <div class="col-md-2">
                             <label for="filterResidenteSelect" class="form-label">Residente:</label>
@@ -410,17 +406,74 @@
     <script>
         const apiUrl = "https://sheetdb.io/api/v1/oawmv4fq268tr";
 
-        // Restaurar datos iniciales (ejemplo de datos iniciales que proporcionaste antes):
         let data = [
-            { id: "_abc123", residente: "LarEl", fecha: "4/5/2024", franja: "6 a 8", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
-            { id: "_def456", residente: "FolMa", fecha: "13/5/2024", franja: "14 a 16", lugar: "En mitad de la habitación", consecuencias: "TCE", sensor: "No hay sensor" },
-            // Agrega aquí todos los datos iniciales que tenías originalmente...
-            // Este es solo un ejemplo. Debes colocar el array completo de datos iniciales que utilizabas al comienzo.
+            { id: generateUniqueId(), residente: "Elías Lara", fecha: "4/5/2024", franja: "6 a 8", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "María Folgado", fecha: "13/5/2024", franja: "14 a 16", lugar: "En mitad de la habitación", consecuencias: "TCE", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Juan Victorio Calvo", fecha: "21/5/2024", franja: "16 a 18", lugar: "Al lado de la cama de la habitación", consecuencias: "Herida", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Mercedes Reguera", fecha: "14/5/2024", franja: "10 a 12", lugar: "Salón de la planta primera", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Luis Rodríguez", fecha: "2/7/2024", franja: "2 a 4", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "María Pérez", fecha: "23/5/2024", franja: "8 a 10", lugar: "Dentro del baño de la habitación", consecuencias: "TCE", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Luisa Cruz", fecha: "24/5/2024", franja: "18 a 20", lugar: "Terraza", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Francisco Ferreira", fecha: "4/6/2024", franja: "22 a 0", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Mercedes Reguera", fecha: "5/7/2024", franja: "4 a 6", lugar: "Dentro del baño de la habitación", consecuencias: "Fractura", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "María Mateos", fecha: "9/7/2024", franja: "8 a 10", lugar: "Dentro del baño de la habitación", consecuencias: "Fractura", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "María Sancho", fecha: "16/7/2024", franja: "2 a 4", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "María Sancho", fecha: "19/7/2024", franja: "0 a 2", lugar: "Al lado de la cama de la habitación", consecuencias: "Contusión", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Martín Nieto", fecha: "21/7/2024", franja: "12 a 14", lugar: "Dentro del baño de la habitación", consecuencias: "Herida", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Cayo Martín", fecha: "22/7/2024", franja: "0 a 2", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Lucrecia García", fecha: "24/7/2024", franja: "0 a 2", lugar: "Pasillo", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Valentín Vera", fecha: "25/7/2024", franja: "16 a 18", lugar: "Salón de la planta segunda", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Alfredo Palazuelos", fecha: "31/7/2024", franja: "16 a 18", lugar: "Dentro del baño geriátrico", consecuencias: "Contusión", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Alfredo Palazuelos", fecha: "2/8/2024", franja: "2 a 4", lugar: "Dentro del baño de la habitación", consecuencias: "Contusión", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Mariano Iglesias", fecha: "16/8/2024", franja: "14 a 16", lugar: "Dentro del baño geriátrico", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Agustín Peinado", fecha: "23/8/2024", franja: "4 a 6", lugar: "Al lado de la cama de la habitación", consecuencias: "TCE", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Elías Lara", fecha: "27/8/2024", franja: "18 a 20", lugar: "A los pies de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Josefina Perdiguero", fecha: "27/8/2024", franja: "20 a 22", lugar: "A los pies de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Alfredo Palazuelos", fecha: "11/9/2024", franja: "16 a 18", lugar: "Recepción", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "María Sancho", fecha: "21/9/2024", franja: "20 a 22", lugar: "Dentro del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Elías Lara", fecha: "22/9/2024", franja: "12 a 14", lugar: "Comedor", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Alfredo Palazuelos", fecha: "23/9/2024", franja: "10 a 12", lugar: "Dentro del ascensor", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Luis Rodríguez", fecha: "26/9/2024", franja: "2 a 4", lugar: "Dentro del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Luciano González", fecha: "26/9/2024", franja: "20 a 22", lugar: "En mitad de la habitación", consecuencias: "Herida", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Mariano Iglesias", fecha: "28/9/2024", franja: "14 a 16", lugar: "Dentro del baño geriátrico", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Alberto González", fecha: "1/10/2024", franja: "20 a 22", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Alberto González", fecha: "4/10/2024", franja: "22 a 0", lugar: "Puerta del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Alberto González", fecha: "9/10/2024", franja: "22 a 0", lugar: "Puerta del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Juan Victorio Calvo", fecha: "10/10/2024", franja: "0 a 2", lugar: "En mitad de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Luciano González", fecha: "13/10/2024", franja: "20 a 22", lugar: "Dentro del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Alberto González", fecha: "13/10/2024", franja: "22 a 0", lugar: "En mitad de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Alberto González", fecha: "17/10/2024", franja: "20 a 22", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Alberto González", fecha: "17/10/2024", franja: "6 a 8", lugar: "Salón de la planta primera", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Ascensión Sáiz", fecha: "17/10/2024", franja: "10 a 12", lugar: "Salón de la segunda planta", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Alfredo Palazuelos", fecha: "18/10/2024", franja: "8 a 10", lugar: "Puerta del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Elías Lara", fecha: "18/10/2024", franja: "10 a 12", lugar: "Salón de la segunda planta", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Juan Victorio Calvo", fecha: "19/10/2024", franja: "22 a 0", lugar: "A los pies de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Agustín Peinado", fecha: "19/10/2024", franja: "6 a 8", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Luciano González", fecha: "19/10/2024", franja: "20 a 22", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Juan Victorio Calvo", fecha: "19/10/2024", franja: "8 a 10", lugar: "En mitad de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Juan Victorio Calvo", fecha: "19/10/2024", franja: "10 a 12", lugar: "Salón de la segunda planta", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Juan Victorio Calvo", fecha: "20/10/2024", franja: "16 a 18", lugar: "Pasillo", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Alfredo Palazuelos", fecha: "21/10/2024", franja: "4 a 6", lugar: "Puerta del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Juan Victorio Calvo", fecha: "26/10/2024", franja: "4 a 6", lugar: "Dentro del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Andrea Gutierrez", fecha: "26/10/2024", franja: "8 a 10", lugar: "Puerta del baño de la habitación", consecuencias: "Contusión", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Vicente Martínez", fecha: "27/10/2024", franja: "14 a 16", lugar: "Recepción", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Agustín Peinado", fecha: "2/11/2024", franja: "22 a 0", lugar: "Pasillo", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Alfredo Palazuelos", fecha: "3/11/2024", franja: "4 a 6", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Lucrecia García", fecha: "3/11/2024", franja: "16 a 18", lugar: "Sala de actividades", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Antonio del Valle", fecha: "4/11/2024", franja: "22 a 0", lugar: "Dentro del baño de la habitación", consecuencias: "Contusión", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "María Sancho", fecha: "7/11/2024", franja: "2 a 4", lugar: "Dentro del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Alberto González", fecha: "7/11/2024", franja: "16 a 18", lugar: "Planta primera", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Martín Nieto", fecha: "9/11/2024", franja: "14 a 16", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Martín Nieto", fecha: "10/11/2024", franja: "14 a 16", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Francisca Blanco", fecha: "13/11/2024", franja: "10 a 12", lugar: "Dentro del baño de la habitación", consecuencias: "Herida", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Manuela Vicente", fecha: "17/11/2024", franja: "14 a 16", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Alfredo Palazuelos", fecha: "21/11/2024", franja: "10 a 12", lugar: "Recepción", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Martín Nieto", fecha: "22/11/2024", franja: "16 a 18", lugar: "Salón de la segunda planta", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Mercedes Reguera", fecha: "28/11/2024", franja: "22 a 0", lugar: "A los pies de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Carmen Yela", fecha: "14/5/2024", franja: "10 a 12", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Isabel Sanz", fecha: "5/6/2024", franja: "16 a 18", lugar: "Dentro del baño de la habitación", consecuencias: "Herida", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Josefina Perdiguero", fecha: "21/6/2024", franja: "16 a 18", lugar: "Dentro del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" }
         ];
-
-        // El resto del código se mantiene igual que en la última versión
-        // Solo se modificará fetchRemoteData para concatenar los datos remotos
-        // y el window.onload se mantiene.
 
         function generateUniqueId() {
             return '_' + Math.random().toString(36).substr(2, 9);
@@ -531,7 +584,6 @@
                     consecuencias: row["Consecuencias"] || "",
                     sensor: row["Sensor de Movimiento"] || ""
                 }));
-                // Concatenar los datos remotos a los datos locales
                 data = data.concat(transformed);
                 filteredData = [...data];
             } catch (error) {
@@ -588,7 +640,6 @@
         }
 
         function initializeFilterSelects() {
-            // Vaciar selects antes de llenarlos
             filterFranjaSelect.innerHTML = `<option value="">Todas</option>`;
             filterLugarSelect.innerHTML = `<option value="">Todos</option>`;
             filterConsecuenciasSelect.innerHTML = `<option value="">Todas</option>`;
