@@ -41,20 +41,24 @@
         .card {
             margin-bottom: 20px;
         }
+        /* Estilo para el botón de cierre de sesión */
         .logout-btn {
             margin-left: 10px;
         }
+        /* Ajuste del título en el encabezado */
         .navbar-brand {
-            font-size: 1.75rem; 
+            font-size: 1.75rem; /* Tamaño de letra aumentado */
             font-weight: bold;
             position: absolute;
             left: 50%;
             top: 50%;
             transform: translate(-50%, -50%);
         }
+        /* Asegurar que la barra de navegación sea relativa para posicionar correctamente el título */
         .navbar {
             position: relative;
         }
+        /* Estilos para los botones Período 1 y Período 2 */
         .period-buttons {
             margin-bottom: 15px;
         }
@@ -334,6 +338,9 @@
                 </div>
             </div>
 
+            <!-- Contenido Protegido (Opcional) -->
+            <!-- Este contenido ya está incluido dentro de protected-content -->
+
             <!-- NUEVA GRÁFICA HISTÓRICA -->
             <div class="card">
                 <div class="card-header">
@@ -349,9 +356,6 @@
                 </div>
             </div>
             <!-- FIN NUEVA GRÁFICA HISTÓRICA -->
-
-            <!-- Contenido Protegido (Opcional) -->
-            <!-- Este contenido ya está incluido dentro de protected-content -->
 
         </main>
     </div>
@@ -382,17 +386,14 @@
                     }
                 });
 
-                // Abrir el widget de inicio de sesión
                 loginBtn.addEventListener("click", () => {
                     window.netlifyIdentity.open();
                 });
 
-                // Cerrar sesión
                 logoutBtn.addEventListener("click", () => {
                     window.netlifyIdentity.logout();
                 });
 
-                // Acciones tras iniciar sesión
                 window.netlifyIdentity.on("login", user => {
                     loginBtn.style.display = "none";
                     logoutBtn.style.display = "inline-block";
@@ -400,7 +401,6 @@
                     window.netlifyIdentity.close();
                 });
 
-                // Acciones tras cerrar sesión
                 window.netlifyIdentity.on("logout", () => {
                     loginBtn.style.display = "inline-block";
                     logoutBtn.style.display = "none";
@@ -573,6 +573,7 @@
             { id: generateUniqueId(), residente: "Josefina Perdiguero", fecha: "21/6/2024", franja: "16 a 18", lugar: "Dentro del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" }
         ];
 
+        // Codificar nombres de los datos precargados
         data = data.map(item => {
             return {
                 ...item,
@@ -1552,7 +1553,26 @@
             }
         }
 
-        // NUEVAS FUNCIONES Y VARIABLES PARA LA GRÁFICA HISTÓRICA
+        window.onload = async function() {
+            await fetchRemoteData();
+            initializeFilterSelects();
+            setDefaultDateFilters(); 
+            filterData();
+            updateChart();
+            updateCounters(filteredData); 
+            document.getElementById('btnFranja').classList.add('active');
+            updateButtonStates();
+            actualizarDatalistResidentes();
+
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        };
+
+        // NUEVO CÓDIGO PARA LA GRÁFICA HISTÓRICA
+
+        // Datos históricos fijos (de la imagen)
         const historicalData = [
             { label: "2014-2015", value: 168 },
             { label: "2015-2016", value: 167 },
@@ -1663,24 +1683,9 @@
             alert('Gráfica histórica actualizada');
         });
 
-        window.onload = async function() {
-            await fetchRemoteData();
-            initializeFilterSelects();
-            setDefaultDateFilters();
-            filterData();
-            updateChart();
-            updateCounters(filteredData);
-            document.getElementById('btnFranja').classList.add('active');
-            updateButtonStates();
-            actualizarDatalistResidentes();
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl);
-            });
-
-            // Llamamos a la función para renderizar la gráfica histórica tras cargar los datos
-            renderHistoricalChart();
-        };
+        window.addEventListener('load', () => {
+            renderHistoricalChart(); 
+        });
     </script>
 </body>
 </html>
