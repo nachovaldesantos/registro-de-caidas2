@@ -25,7 +25,7 @@
         .chart-container {
             margin: 20px 0;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
         }
         .chart-container canvas {
@@ -101,9 +101,7 @@
                 <div class="card-body">
                     <div class="chart-container">
                         <canvas id="chart"></canvas>
-                    </div>
-                    <div class="text-center">
-                        <button id="downloadChart" class="btn btn-secondary mt-3">Descargar Gráfica</button>
+                        <button class="btn btn-secondary mt-3 download-chart-button" data-chart="chart">Descargar Gráfica</button>
                     </div>
                 </div>
             </div>
@@ -343,13 +341,14 @@
                     <div class="chart-selector text-center mb-3">
                         <button class="btn btn-outline-primary me-2" id="btnHistorico">Caídas Históricas</button>
                         <button class="btn btn-outline-primary me-2" id="btnConsecuenciasHistoricas">Consecuencias Históricas</button>
-                        <button class="btn btn-outline-secondary" id="downloadConsecuenciasChart" style="display: none;">Descargar Gráfica de Consecuencias</button>
                     </div>
                     <div id="chartHistoricoContainer" class="chart-container">
                         <canvas id="chartHistorico"></canvas>
+                        <button class="btn btn-secondary mt-3 download-chart-button" data-chart="chartHistorico">Descargar Gráfica Histórica</button>
                     </div>
                     <div id="chartConsecuenciasHistoricoContainer" class="chart-container" style="display: none;">
                         <canvas id="chartConsecuenciasHistorico"></canvas>
+                        <button class="btn btn-secondary mt-3 download-chart-button" data-chart="chartConsecuenciasHistorico">Descargar Gráfica de Consecuencias</button>
                     </div>
                 </div>
             </div>
@@ -1380,18 +1379,22 @@
             }
         }
 
-        function downloadChartAsImage() {
-            try {
-                const link = document.createElement('a');
-                link.href = chart.toBase64Image('image/png', 1);
-                link.download = `grafica_${currentChartType}_${new Date().toISOString().slice(0,10)}.png`;
-                link.click();
-                alert('La gráfica ha sido descargada exitosamente en formato PNG.');
-            } catch (error) {
-                console.error('Error al descargar la gráfica:', error);
-                alert('Hubo un error al intentar descargar la gráfica. Por favor, inténtalo de nuevo.');
-            }
-        }
+        // Evento para descargar cualquier gráfica
+        document.querySelectorAll('.download-chart-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const chartId = this.getAttribute('data-chart');
+                const chart = Chart.getChart(chartId);
+                if (chart) {
+                    const link = document.createElement('a');
+                    link.href = chart.toBase64Image('image/png', 1);
+                    link.download = `grafica_${chartId}_${new Date().toISOString().slice(0,10)}.png`;
+                    link.click();
+                    alert('La gráfica ha sido descargada exitosamente en formato PNG.');
+                } else {
+                    alert('No se pudo encontrar la gráfica para descargar.');
+                }
+            });
+        });
 
         // NUEVAS FUNCIONES Y VARIABLES PARA LA SECCIÓN DE GRÁFICAS ADICIONALES
         // Modificado para integrar botones de cambio y descarga, y limitar a 5 periodos en Consecuencias
@@ -1525,15 +1528,15 @@
                 },
                 {
                     label: "2018-2019",
-                    data: [78,15,11,3,2,1]
+                    data: [78,8,10,2,2,0] // Datos corregidos
                 },
                 {
                     label: "2021-2022(70 residentes)",
-                    data: [78,11,10,1,2,0]
+                    data: [73,15,3,7,2,0] // Datos corregidos
                 },
                 {
                     label: "2022-2023",
-                    data: [78,11,10,2,0,0]
+                    data: [74,11,6,5,0,0] // Datos corregidos
                 }
             ]
         };
@@ -1581,7 +1584,7 @@
                 if (total > 0) {
                     newPeriods.push({
                         label: `${year}-${year+1}`,
-                        data: percentages.map(p => parseFloat(p.toFixed(0))) // Removed decimals
+                        data: percentages.map(p => parseFloat(p.toFixed(0))) // Remove decimals
                     });
                 }
             }
@@ -1666,29 +1669,13 @@
         document.getElementById('btnHistorico').addEventListener('click', function() {
             document.getElementById('chartHistoricoContainer').style.display = 'block';
             document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'none';
-            document.getElementById('downloadConsecuenciasChart').style.display = 'none';
             setActiveChartSection(this);
         });
 
         document.getElementById('btnConsecuenciasHistoricas').addEventListener('click', function() {
             document.getElementById('chartHistoricoContainer').style.display = 'none';
             document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'block';
-            document.getElementById('downloadConsecuenciasChart').style.display = 'inline-block';
             setActiveChartSection(this);
-        });
-
-        document.getElementById('downloadConsecuenciasChart').addEventListener('click', function() {
-            try {
-                const chartConsecuencias = consequencesChart;
-                const link = document.createElement('a');
-                link.href = chartConsecuencias.toBase64Image('image/png', 1);
-                link.download = `grafica_consecuencias_${new Date().toISOString().slice(0,10)}.png`;
-                link.click();
-                alert('La gráfica de consecuencias ha sido descargada exitosamente en formato PNG.');
-            } catch (error) {
-                console.error('Error al descargar la gráfica de consecuencias:', error);
-                alert('Hubo un error al intentar descargar la gráfica. Por favor, inténtalo de nuevo.');
-            }
         });
 
         function setActiveChartSection(activeButton) {
@@ -1697,12 +1684,10 @@
             activeButton.classList.add('active');
         }
 
-        // Initialize button states and charts
         function initializeChartSections() {
             // By default, show 'chartHistorico'
             document.getElementById('chartHistoricoContainer').style.display = 'block';
             document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'none';
-            document.getElementById('downloadConsecuenciasChart').style.display = 'none';
             setActiveChartSection(document.getElementById('btnHistorico'));
         }
 
@@ -1759,9 +1744,6 @@
             filterFromDateCompare.value = "";
             filterToDateCompare.value = "";
         }
-
-        // Botón para descargar la gráfica principal
-        document.getElementById('downloadChart').addEventListener('click', downloadChartAsImage);
     </script>
 </body>
 </html>
