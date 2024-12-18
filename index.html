@@ -1662,18 +1662,7 @@
             });
         }
 
-        document.getElementById('updateHistoricalChart').addEventListener('click', function() {
-            renderHistoricalChart();
-            alert('Gráfica histórica actualizada');
-        });
-
-        document.getElementById('updateConsequencesChart').addEventListener('click', function() {
-            renderConsequencesChart();
-            alert('Gráfica de consecuencias actualizada');
-        });
-
-        // NUEVA SECCIÓN DE GRÁFICAS ADICIONALES
-        // Implementar botones para cambiar entre 'chartHistorico' y 'chartConsecuenciasHistorico'
+        // Botones para cambiar entre gráficas adicionales
         document.getElementById('btnHistorico').addEventListener('click', function() {
             document.getElementById('chartHistoricoContainer').style.display = 'block';
             document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'none';
@@ -1729,9 +1718,8 @@
             initializeChartSections();
         }
 
-        const originalWindowOnload = window.onload;
-        window.onload = async function() {
-            if (originalWindowOnload) await originalWindowOnload();
+        // Unificar todas las inicializaciones en una sola función de carga
+        window.addEventListener('load', async function() {
             await fetchRemoteData();
             initializeFilterSelects();
             setDefaultDateFilters();
@@ -1747,7 +1735,33 @@
             });
 
             initializeCharts();
-        };
+        });
+
+        // Función para establecer fechas por defecto
+        function setDefaultDateFilters() {
+            const today = new Date();
+            const currentYear = today.getFullYear();
+            const mayFirst = new Date(currentYear, 4, 1);
+
+            if (today < mayFirst) {
+                mayFirst.setFullYear(currentYear - 1);
+            }
+
+            const formatDate = (date) => {
+                const yyyy = date.getFullYear();
+                const mm = String(date.getMonth() + 1).padStart(2, '0');
+                const dd = String(date.getDate()).padStart(2, '0');
+                return `${yyyy}-${mm}-${dd}`;
+            };
+
+            filterFromDate.value = formatDate(mayFirst);
+            filterToDate.value = formatDate(today);
+            filterFromDateCompare.value = "";
+            filterToDateCompare.value = "";
+        }
+
+        // Botón para descargar la gráfica principal
+        document.getElementById('downloadChart').addEventListener('click', downloadChartAsImage);
     </script>
 </body>
 </html>
