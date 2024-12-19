@@ -817,11 +817,14 @@
                         }
                     });
                     lugarEspecifico = lugarEspecifico.charAt(0).toUpperCase() + lugarEspecifico.slice(1);
-                    lugarHabitacionCount[lugarEspecifico] = (lugarHabitacionCount[lugarEspecifico] || 0) + 1;
+                    const cat = lugarHabitacionBaseData.labels.find(l => l === lugarEspecifico);
+                    if (cat) {
+                        lugarHabitacionCount[cat] = (lugarHabitacionCount[cat] || 0) + 1;
+                    }
                 }
             });
-            let labels = Object.keys(lugarHabitacionCount).sort((a, b) => lugarHabitacionCount[b] - lugarHabitacionCount[a]);
-            let counts = labels.map(l => lugarHabitacionCount[l]);
+            let labels = lugarHabitacionBaseData.labels;
+            let counts = labels.map(l => lugarHabitacionCount[l] || 0);
             return { labels, counts };
         }
 
@@ -1613,6 +1616,14 @@
                 {
                     label: "2022-2023",
                     data: [29,12,5,6,12]
+                },
+                {
+                    label: "2023-2024",
+                    data: [/* Reemplaza con los porcentajes proporcionados */]
+                },
+                {
+                    label: "2024-2025",
+                    data: [/* Reemplaza con los porcentajes proporcionados */]
                 }
             ]
         };
