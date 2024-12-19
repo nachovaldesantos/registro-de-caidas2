@@ -352,7 +352,6 @@
                         <canvas id="chartConsecuenciasHistorico"></canvas>
                         <button class="btn btn-secondary mt-3 download-chart-button" data-chart="chartConsecuenciasHistorico">Descargar Gráfica de Consecuencias</button>
                     </div>
-                    <!-- NUEVAS GRÁFICAS -->
                     <div id="chartLugarHabitacionContainer" class="chart-container" style="display: none;">
                         <canvas id="chartLugarHabitacion"></canvas>
                         <button class="btn btn-secondary mt-3 download-chart-button" data-chart="chartLugarHabitacion">Descargar Gráfica Lugar Habitación</button>
@@ -819,7 +818,7 @@
                     // Contabilizar si corresponde a una categoría
                     const cat = lugarHabitacionBaseData.labels.find(l => l === lugarEspecifico);
                     if (cat) {
-                        lugarHabitacionCount[lugarEspecifico] = (lugarHabitacionCount[lugarEspecifico] || 0) + 1;
+                        lugarHabitacionCount[cat] = (lugarHabitacionCount[cat] || 0) + 1;
                     }
                 }
             });
@@ -947,8 +946,8 @@
                     map2.set(label, chartData2.counts[index]);
                 });
 
-                const total1 = counts1.reduce((a,b) => a+b,0);
-                const total2 = chartData2.counts.reduce((a,b) => a+b,0);
+                const total1 = counts1.reduce((a,b) => parseFloat(a) + parseFloat(b),0);
+                const total2 = chartData2.counts.reduce((a,b) => parseFloat(a) + parseFloat(b),0);
 
                 const percentage1 = allLabels.map(label => {
                     const count = map1.get(label) || 0;
@@ -1546,8 +1545,7 @@
             });
 
             const combinedData = [...historicalData, ...filteredNewPeriods];
-            // **Modificación**: Incluir todos los periodos históricos sin limitar a los últimos cinco
-            // const lastFive = combinedData.slice(-5); // Eliminar esta línea
+            // Incluir todos los periodos históricos sin limitar a los últimos cinco
             const lastFive = combinedData; // Incluir todos los periodos
 
             const labels = lastFive.map(d => d.label);
@@ -1627,7 +1625,7 @@
                     label: "2022-2023",
                     data: [29,12,5,6,12]
                 },
-                // **Nuevos Periodos Añadidos**
+                // Nuevos Periodos Añadidos
                 {
                     label: "2023-2024",
                     data: [0,0,0,0,0] // Inicializar con 0, se actualizará dinámicamente
@@ -1708,8 +1706,7 @@
 
             const newPeriods = generateNewLugarHabitacionPeriods(data);
             const combinedPeriods = [...lugarHabitacionBaseData.periods, ...newPeriods];
-            // **Modificación**: Limitar a los últimos dos periodos específicos (2023-2024 y 2024-2025)
-            // const limitedPeriods = combinedPeriods.slice(-5); // Eliminar esta línea
+            // Limitar a los últimos dos periodos específicos (2023-2024 y 2024-2025)
             const limitedPeriods = combinedPeriods.slice(-2); // Incluir solo 2023-2024 y 2024-2025
 
             const labels = lugarHabitacionBaseData.labels;
