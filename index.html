@@ -350,8 +350,21 @@
             </div>
             <!-- FIN NUEVA GRÁFICA HISTÓRICA -->
 
-            <!-- Contenido Protegido (Opcional) -->
-            <!-- Este contenido ya está incluido dentro de protected-content -->
+            <!-- NUEVO GRÁFICO DE CONSECUENCIAS HISTÓRICAS -->
+            <div class="card">
+                <div class="card-header">
+                    <h5>Consecuencias de las caídas (En % del total de caídas) Histórico + Actualización</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chartConsecuenciasHistorico"></canvas>
+                    </div>
+                    <div class="text-center">
+                        <button id="updateConsequencesChart" class="btn btn-secondary mt-3">Actualizar Gráfica de Consecuencias</button>
+                    </div>
+                </div>
+            </div>
+            <!-- FIN NUEVO GRÁFICO DE CONSECUENCIAS HISTÓRICAS -->
 
         </main>
     </div>
@@ -1585,7 +1598,10 @@
                 const fromDateStr = `1/5/${year}`;
                 const toDateStr = `30/4/${year+1}`;
                 const fallsCount = sumFallsInRange(dataSet, fromDateStr, toDateStr);
-                newPeriods.push({ label: `${year}-${year+1}`, value: fallsCount });
+                // Agregar solo si hay datos
+                if (fallsCount > 0) {
+                    newPeriods.push({ label: `${year}-${year+1}`, value: fallsCount });
+                }
             }
 
             return newPeriods;
@@ -1663,7 +1679,177 @@
             alert('Gráfica histórica actualizada');
         });
 
+        // NUEVO GRÁFICO DE CONSECUENCIAS (HISTÓRICO + ACTUALIZACIÓN)
+        const consequencesBaseData = {
+            labels: ["Sin consecuencias","Contusión","Herida","TCE","Fractura cadera","Fractura"],
+            periods: [
+                {
+                    label: "2014-2015",
+                    data: [96,3,1,0,0,0]
+                },
+                {
+                    label: "2015-2016",
+                    data: [68,17,8,1,1,0]
+                },
+                {
+                    label: "2016-2017",
+                    data: [66,20,11,1,1,0]
+                },
+                {
+                    label: "2017-2018",
+                    data: [66,22,14,0,0,1]
+                },
+                {
+                    label: "2018-2019",
+                    data: [78,15,11,3,2,1]
+                },
+                {
+                    label: "2021-2022(70 residentes)",
+                    data: [78,11,10,1,2,0]
+                },
+                {
+                    label: "2022-2023",
+                    data: [78,11,10,2,0,0]
+                }
+            ]
+        };
+
+        function getConsequencesCountsInRange(dataSet, fromDateStr, toDateStr) {
+            const fromDate = dateStrToDate(parseFecha(fromDateStr));
+            const toDate = dateStrToDate(parseFecha(toDateStr));
+            let total = 0;
+            const counts = {
+                "Sin consecuencias": 0,
+                "Contusión": 0,
+                "Herida": 0,
+                "TCE": 0,
+                "Fractura cadera": 0,
+                "Fractura": 0
+            };
+
+            dataSet.forEach(item => {
+                const itemDate = dateStrToDate(item.fecha);
+                if (itemDate >= fromDate && itemDate <= toDate) {
+                    total++;
+                    if (counts[item.consecuencias] !== undefined) {
+                        counts[item.consecuencias]++;
+                    }
+                }
+            });
+
+            const percentages = Object.keys(counts).map(key => {
+                return total > 0 ? (counts[key] / total * 100) : 0;
+            });
+
+            return percentages;
+        }
+
+        function generateNewConsequencesPeriods(dataSet) {
+            const startYear = 2023;
+            const endYear = new Date().getFullYear() + 1;
+            const newPeriods = [];
+            for (let year = startYear; year <= endYear; year++) {
+                const fromDateStr = `1/5/${year}`;
+                const toDateStr = `30/4/${year+1}`;
+                const percentages = getConsequencesCountsInRange(dataSet, fromDateStr, toDateStr);
+                const total = percentages.reduce((a,b)=>a+b,0);
+                // Agregar solo si hay datos
+                if (total > 0) {
+                    newPeriods.push({
+                        label: `${year}-${year+1}`,
+                        data: percentages.map(p => parseFloat(p.toFixed(1)))
+                    });
+                }
+            }
+            return newPeriods;
+        }
+
+        let consequencesChart;
+
+        function renderConsequencesChart() {
+            const chartConsecuenciasCtx = document.getElementById('chartConsecuenciasHistorico').getContext('2d');
+
+            const newPeriods = generateNewConsequencesPeriods(data);
+            const combinedPeriods = [...consequencesBaseData.periods];
+
+            // Añadimos sólo los períodos con datos
+            newPeriods.forEach(np => {
+                if (!combinedPeriods.some(cp => cp.label === np.label)) {
+                    combinedPeriods.push(np);
+                }
+            });
+
+            const labels = consequencesBaseData.labels;
+            const allPeriodLabels = combinedPeriods.map(p => p.label);
+            const palette = assignColors(allPeriodLabels);
+
+            const datasets = combinedPeriods.map((period, index) => {
+                const bgColor = palette[index];
+                const borderColor = bgColor.replace('0.6','1');
+                return {
+                    label: period.label,
+                    data: period.data.map(d => parseFloat(d.toFixed(1))),
+                    backgroundColor: bgColor,
+                    borderColor: borderColor,
+                    borderWidth: 1
+                };
+            });
+
+            if (consequencesChart) {
+                consequencesChart.destroy();
+            }
+
+            consequencesChart = new Chart(chartConsecuenciasCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true
+                        },
+                        title: {
+                            display: true,
+                            text: 'Consecuencias de las caídas (En % del total de caídas)',
+                            padding: { top: 30, bottom: 10 }
+                        },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'end',
+                            formatter: function(value) {
+                                return value;
+                            },
+                            font: {
+                                weight: 'bold'
+                            },
+                            color: '#000'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Valores'
+                            }
+                        }
+                    }
+                },
+                plugins: [ChartDataLabels, whiteBackgroundPlugin]
+            });
+        }
+
+        document.getElementById('updateConsequencesChart').addEventListener('click', function() {
+            renderConsequencesChart();
+            alert('Gráfica de consecuencias actualizada');
+        });
+
+        const originalWindowOnload = window.onload;
         window.onload = async function() {
+            if (originalWindowOnload) await originalWindowOnload();
             await fetchRemoteData();
             initializeFilterSelects();
             setDefaultDateFilters();
@@ -1678,8 +1864,8 @@
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
 
-            // Llamamos a la función para renderizar la gráfica histórica tras cargar los datos
             renderHistoricalChart();
+            renderConsequencesChart();
         };
     </script>
 </body>
