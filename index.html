@@ -10,16 +10,22 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Chart.js Data Labels Plugin -->
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <!-- SheetJS -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #f8f9fa;
             color: #343a40;
         }
+        .table-container {
+            max-height: 500px;
+            overflow-y: auto;
+        }
         .chart-container {
             margin: 20px 0;
             display: flex;
-            flex-direction: column;
+            justify-content: center;
             align-items: center;
         }
         .chart-container canvas {
@@ -28,119 +34,1652 @@
             max-width: 1200px; 
             height: 500px;
         }
+        .chart-selector {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .card {
+            margin-bottom: 20px;
+        }
+        .logout-btn {
+            margin-left: 10px;
+        }
+        .navbar-brand {
+            font-size: 1.75rem; 
+            font-weight: bold;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .navbar {
+            position: relative;
+        }
+        .period-buttons {
+            margin-bottom: 15px;
+        }
+        .period-buttons .btn {
+            margin-right: 10px;
+        }
     </style>
 </head>
 <body>
-    <main class="container my-4">
-        <!-- Gráfica: Lugar de las caídas en la habitación -->
-        <div class="chart-container">
-            <h3>% Lugar de las caídas en la habitación</h3>
-            <canvas id="chartLugarHabitacion"></canvas>
+    
+    <!-- Encabezado con título y botones de inicio/cierre de sesión -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Registro de Caídas de Residentes</a>
+            <div class="d-flex ms-auto">
+                <button id="login-btn" class="btn btn-light me-2">Iniciar Sesión</button>
+                <button id="logout-btn" class="btn btn-light logout-btn" style="display: none;">Cerrar Sesión</button>
+            </div>
         </div>
+    </nav>
+    
+    <div id="protected-content" style="display: none;">
+        <main class="container my-4">
+            <!-- Selector de Gráficas -->
+            <div class="card">
+                <div class="card-header">
+                    <h5>Selecciona el Tipo de Gráfica</h5>
+                </div>
+                <div class="card-body chart-selector">
+                    <button class="btn btn-outline-primary me-2" id="btnFranja">Franja Horaria</button>
+                    <button class="btn btn-outline-primary me-2" id="btnLugar">Lugar</button>
+                    <button class="btn btn-outline-primary me-2" id="btnConsecuencias">Consecuencias</button>
+                    <button class="btn btn-outline-primary me-2" id="btnLugarHabitacion">Lugar dentro de la habitación</button>
+                    <button class="btn btn-outline-primary me-2" id="btnResidente">Residente con 3+ Caídas</button>
+                    <button class="btn btn-outline-primary" id="btnFecha">Caídas por fecha</button>
+                </div>
+            </div>
 
-        <!-- Gráfica: Horas de las caídas -->
-        <div class="chart-container">
-            <h3>(%) Horas de las caídas</h3>
-            <canvas id="chartHoras"></canvas>
-        </div>
-    </main>
+            <!-- Gráfica y Botón de Descarga -->
+            <div class="card">
+                <div class="card-header">
+                    <h5>Visualización de Datos</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chart"></canvas>
+                    </div>
+                    <div class="text-center">
+                        <button id="downloadChart" class="btn btn-secondary mt-3">Descargar Gráfica</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtros -->
+            <div class="card">
+                <div class="card-header">
+                    <h5>Filtros</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Botones de Período -->
+                    <div class="period-buttons text-center">
+                        <button id="periodo1Btn" class="btn btn-primary">Período 1</button>
+                        <button id="periodo2Btn" class="btn btn-secondary">Período 2</button>
+                    </div>
+                    <!-- Primera fila: Fechas -->
+                    <div class="row mb-3">
+                        <div class="col-md-2">
+                            <label for="filterFromDate" class="form-label">Desde:</label>
+                            <input type="date" id="filterFromDate" class="form-control">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="filterToDate" class="form-label">Hasta:</label>
+                            <input type="date" id="filterToDate" class="form-control">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="filterFromDateCompare" class="form-label">Desde (Comparación):</label>
+                            <input type="date" id="filterFromDateCompare" class="form-control">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="filterToDateCompare" class="form-label">Hasta (Comparación):</label>
+                            <input type="date" id="filterToDateCompare" class="form-control">
+                        </div>
+                        <!-- Botón para Borrar Filtros -->
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button id="clearFiltersBtn" class="btn btn-warning">Borrar Filtros</button>
+                        </div>
+                    </div>
+
+                    <!-- Segunda fila: Residente, Franja Horaria, Lugar, Consecuencias, Sensor -->
+                    <div class="row mb-3">
+                        <div class="col-md-2">
+                            <label for="filterResidenteSelect" class="form-label">Residente:</label>
+                            <select id="filterResidenteSelect" class="form-select">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="filterFranjaSelect" class="form-label">Franja horaria:</label>
+                            <select id="filterFranjaSelect" class="form-select">
+                                <option value="">Todas</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="filterLugarSelect" class="form-label">Lugar:</label>
+                            <select id="filterLugarSelect" class="form-select">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="filterConsecuenciasSelect" class="form-label">Consecuencias:</label>
+                            <select id="filterConsecuenciasSelect" class="form-select">
+                                <option value="">Todas</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="filterSensorSelect" class="form-label">Sensor:</label>
+                            <select id="filterSensorSelect" class="form-select">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Acciones y Exportaciones -->
+            <div class="card">
+                <div class="card-header">
+                    <h5>Acciones</h5>
+                </div>
+                <div class="card-body text-end">
+                    <button id="exportExcel" class="btn btn-success me-2">Exportar a Excel</button>
+                    <button id="importExcelBtn" class="btn btn-info me-2" data-bs-toggle="tooltip" data-bs-placement="top" title="Formato de fecha esperado: d/m/yyyy o yyyy-mm-dd">Importar desde Excel</button>
+                    <input type="file" id="importExcelInput" accept=".xlsx, .xls" style="display: none;">
+                    <button id="deleteAll" class="btn btn-danger me-2">Eliminar Todos los Registros</button>
+                    <div class="mt-2">
+                        <small class="text-muted">Formatos de fecha esperados: <strong>d/m/yyyy</strong> o <strong>yyyy-mm-dd</strong></small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contadores de Caídas -->
+            <div class="card">
+                <div class="card-header">
+                    <h5>Contadores de Caídas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h6>Total de Caídas Registradas: <span id="totalFalls">0</span></h6>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Caídas Visibles: <span id="visibleFalls">0</span></h6>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Residentes con al menos una caída: <span id="distinctResidents">0</span></h6>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla de Datos -->
+            <div class="card">
+                <div class="card-header">
+                    <h5>Registro de Caídas</h5>
+                </div>
+                <div class="card-body table-container">
+                    <table class="table table-striped" id="data-table">
+                        <thead>
+                            <tr>
+                                <th>Nombre del residente</th>
+                                <th>Fecha</th>
+                                <th>Franja horaria</th>
+                                <th>Lugar de la caída</th>
+                                <th>Consecuencias</th>
+                                <th>Sensor de movimiento</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Filas generadas por JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Formulario de Registro de Caídas -->
+            <div class="card">
+                <div class="card-header">
+                    <h5>Registrar Nueva Caída</h5>
+                </div>
+                <div class="card-body">
+                    <form id="registroCaidas">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="nombreResidente" class="form-label">Nombre del Residente</label>
+                                <input type="text" class="form-control" id="nombreResidente" list="residentesList" required>
+                                <datalist id="residentesList"></datalist>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="fechaCaida" class="form-label">Fecha</label>
+                                <input type="date" class="form-control" id="fechaCaida" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="franjaHoraria" class="form-label">Franja Horaria</label>
+                                <select class="form-select" id="franjaHoraria" required>
+                                    <option value="">Selecciona una opción</option>
+                                    <option value="0 a 2">0 a 2</option>
+                                    <option value="2 a 4">2 a 4</option>
+                                    <option value="4 a 6">4 a 6</option>
+                                    <option value="6 a 8">6 a 8</option>
+                                    <option value="8 a 10">8 a 10</option>
+                                    <option value="10 a 12">10 a 12</option>
+                                    <option value="12 a 14">12 a 14</option>
+                                    <option value="14 a 16">14 a 16</option>
+                                    <option value="16 a 18">16 a 18</option>
+                                    <option value="18 a 20">18 a 20</option>
+                                    <option value="20 a 22">20 a 22</option>
+                                    <option value="22 a 0">22 a 0</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="lugarCaida" class="form-label">Lugar</label>
+                                <select class="form-select" id="lugarCaida" required>
+                                    <option value="">Selecciona una opción</option>
+                                    <option value="Al lado de la cama de la habitación">Al lado de la cama de la habitación</option>
+                                    <option value="A los pies de la cama de la habitación">A los pies de la cama de la habitación</option>
+                                    <option value="En mitad de la habitación">En mitad de la habitación</option>
+                                    <option value="Puerta del baño de la habitación">Puerta del baño de la habitación</option>
+                                    <option value="Dentro del baño de la habitación">Dentro del baño de la habitación</option>
+                                    <option value="Pasillo">Pasillo</option>
+                                    <option value="Salón de la planta primera">Salón de la planta primera</option>
+                                    <option value="Salón de la planta segunda">Salón de la planta segunda</option>
+                                    <option value="Recepción">Recepción</option>
+                                    <option value="Comedor">Comedor</option>
+                                    <option value="Capilla">Capilla</option>
+                                    <option value="Sala de actividades">Sala de actividades</option>
+                                    <option value="Dentro del ascensor">Dentro del ascensor</option>
+                                    <option value="Terraza">Terraza</option>
+                                    <option value="Jardín">Jardín</option>
+                                    <option value="Salón fondo planta 1">Salón fondo planta 1</option>
+                                    <option value="Salón fondo planta 2">Salón fondo planta 2</option>
+                                    <option value="Sala común planta 3">Sala común planta 3</option>
+                                    <option value="Dentro del baño geriátrico">Dentro del baño geriátrico</option>
+                                    <option value="Planta primera">Planta primera</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="consecuencias" class="form-label">Consecuencias</label>
+                                <select class="form-select" id="consecuencias" required>
+                                    <option value="">Selecciona una opción</option>
+                                    <option value="Sin consecuencias">Sin consecuencias</option>
+                                    <option value="Herida">Herida</option>
+                                    <option value="Contusión">Contusión</option>
+                                    <option value="TCE">TCE</option>
+                                    <option value="Fractura">Fractura</option>
+                                    <option value="Fractura cadera">Fractura cadera</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="sensorMovimiento" class="form-label">Sensor de Movimiento</label>
+                                <select class="form-select" id="sensorMovimiento" required>
+                                    <option value="">Selecciona una opción</option>
+                                    <option value="Desconocido">Desconocido</option>
+                                    <option value="Se oyó">Se oyó</option>
+                                    <option value="No se oyó">No se oyó</option>
+                                    <option value="No hay sensor">No hay sensor</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary">Registrar Caída</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- NUEVA GRÁFICA HISTÓRICA -->
+            <div class="card">
+                <div class="card-header">
+                    <h5>Caídas en años anteriores (Histórico + Actualización)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chartHistorico"></canvas>
+                    </div>
+                    <div class="text-center">
+                        <button id="updateHistoricalChart" class="btn btn-secondary mt-3">Actualizar Gráfica Histórica</button>
+                    </div>
+                </div>
+            </div>
+            <!-- FIN NUEVA GRÁFICA HISTÓRICA -->
+
+            <!-- Contenido Protegido (Opcional) -->
+            <!-- Este contenido ya está incluido dentro de protected-content -->
+
+        </main>
+    </div>
+    
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Netlify Identity Widget -->
+    <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const loginBtn = document.getElementById("login-btn");
+            const logoutBtn = document.getElementById("logout-btn");
+            const protectedContent = document.getElementById("protected-content");
+
+            // Inicializa Netlify Identity
+            if (window.netlifyIdentity) {
+                window.netlifyIdentity.on("init", user => {
+                    if (user) {
+                        loginBtn.style.display = "none";
+                        logoutBtn.style.display = "inline-block";
+                        protectedContent.style.display = "block";
+                    } else {
+                        loginBtn.style.display = "inline-block";
+                        logoutBtn.style.display = "none";
+                        protectedContent.style.display = "none";
+                    }
+                });
+
+                // Abrir el widget de inicio de sesión
+                loginBtn.addEventListener("click", () => {
+                    window.netlifyIdentity.open();
+                });
+
+                // Cerrar sesión
+                logoutBtn.addEventListener("click", () => {
+                    window.netlifyIdentity.logout();
+                });
+
+                // Acciones tras iniciar sesión
+                window.netlifyIdentity.on("login", user => {
+                    loginBtn.style.display = "none";
+                    logoutBtn.style.display = "inline-block";
+                    protectedContent.style.display = "block";
+                    window.netlifyIdentity.close();
+                });
+
+                // Acciones tras cerrar sesión
+                window.netlifyIdentity.on("logout", () => {
+                    loginBtn.style.display = "inline-block";
+                    logoutBtn.style.display = "none";
+                    protectedContent.style.display = "none";
+                });
+            }
+        });
+    </script>
 
     <script>
-        // Datos para la gráfica de Lugar de las caídas en la habitación
-        const lugarData = {
-            labels: [
-                'Al lado de la cama de la habitación',
-                'En mitad de la habitación',
-                'A los pies de la cama de la habitación',
-                'En la puerta del baño de la habitación',
-                'Dentro del baño de la habitación'
-            ],
-            datasets: [
-                {
-                    label: '2018-2019',
-                    data: [30, 10, 5, 6, 15],
-                    backgroundColor: 'rgba(255, 99, 132, 0.6)',
+        const apiUrl = "https://sheetdb.io/api/v1/oawmv4fq268tr";
+
+        function generateUniqueId() {
+            return '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // Convierte dd/mm/yyyy a Date
+        function dateStrToDate(dStr) {
+            const [dia, mes, año] = dStr.split('/').map(n=>parseInt(n,10));
+            return new Date(año, mes-1, dia);
+        }
+
+        function parseFecha(fechaStr) {
+            let partes;
+            if (fechaStr.includes('/')) {
+                partes = fechaStr.split('/');
+                if (partes.length !== 3) return null;
+                let [dia, mes, año] = partes;
+                dia = parseInt(dia, 10);
+                mes = parseInt(mes, 10);
+                año = parseInt(año, 10);
+                if (isNaN(dia) || isNaN(mes) || isNaN(año)) return null;
+                if (dia < 1 || dia > 31 || mes < 1 || mes > 12) return null;
+                return `${dia}/${mes}/${año}`;
+            } else if (fechaStr.includes('-')) {
+                partes = fechaStr.split('-');
+                if (partes.length !== 3) return null;
+                let [año, mes, dia] = partes;
+                dia = parseInt(dia, 10);
+                mes = parseInt(mes, 10);
+                año = parseInt(año, 10);
+                if (isNaN(dia) || isNaN(mes) || isNaN(año)) return null;
+                if (dia < 1 || dia > 31 || mes < 1 || mes > 12) return null;
+                return `${dia}/${mes}/${año}`;
+            } else {
+                return null;
+            }
+        }
+
+        function convertNameToCode(fullName) {
+            const parts = fullName.trim().split(" ");
+            if (parts.length < 2) return fullName; 
+            const lastName = parts[parts.length - 1]; 
+            const firstName = parts[0]; 
+            const lastNameCode = lastName.charAt(0).toUpperCase() + lastName.slice(1,3).toLowerCase();
+            const firstNameCode = firstName.charAt(0).toUpperCase() + firstName.slice(1,2).toLowerCase();
+            return lastNameCode + firstNameCode;
+        }
+
+        const colorPalette = [
+            'rgba(255, 99, 132, 0.6)',
+            'rgba(54, 162, 235, 0.6)',
+            'rgba(255, 206, 86, 0.6)',
+            'rgba(75, 192, 192, 0.6)',
+            'rgba(153, 102, 255, 0.6)',
+            'rgba(255, 159, 64, 0.6)',
+            'rgba(199, 199, 199, 0.6)',
+            'rgba(83, 102, 255, 0.6)',
+            'rgba(255, 102, 255, 0.6)',
+            'rgba(102, 255, 102, 0.6)',
+            'rgba(255, 102, 102, 0.6)',
+            'rgba(102, 255, 255, 0.6)'
+        ];
+
+        function assignColors(labels) {
+            const colors = [];
+            for (let i = 0; i < labels.length; i++) {
+                colors.push(colorPalette[i % colorPalette.length]);
+            }
+            return colors;
+        }
+
+        const whiteBackgroundPlugin = {
+            id: 'custom_canvas_background_color',
+            beforeDraw: (chart, args, options) => {
+                const {ctx, width, height} = chart;
+                ctx.save();
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, width, height);
+                ctx.restore();
+            }
+        };
+
+        function sortDataDescending(labels, counts, colors) {
+            const combined = labels.map((label, index) => ({ label, count: counts[index], color: colors[index] }));
+            combined.sort((a, b) => b.count - a.count);
+            return {
+                labels: combined.map(item => item.label),
+                counts: combined.map(item => item.count),
+                colors: combined.map(item => item.color)
+            };
+        }
+
+        let data = [
+            { id: generateUniqueId(), residente: "Elías Lara", fecha: "4/5/2024", franja: "6 a 8", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "María Folgado", fecha: "13/5/2024", franja: "14 a 16", lugar: "En mitad de la habitación", consecuencias: "TCE", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Juan Victorio Calvo", fecha: "21/5/2024", franja: "16 a 18", lugar: "Al lado de la cama de la habitación", consecuencias: "Herida", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Mercedes Reguera", fecha: "14/5/2024", franja: "10 a 12", lugar: "Salón de la planta primera", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Luis Rodríguez", fecha: "2/7/2024", franja: "2 a 4", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "María Pérez", fecha: "23/5/2024", franja: "8 a 10", lugar: "Dentro del baño de la habitación", consecuencias: "TCE", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Luisa Cruz", fecha: "24/5/2024", franja: "18 a 20", lugar: "Terraza", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Francisco Ferreira", fecha: "4/6/2024", franja: "22 a 0", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Mercedes Reguera", fecha: "5/7/2024", franja: "4 a 6", lugar: "Dentro del baño de la habitación", consecuencias: "Fractura", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "María Mateos", fecha: "9/7/2024", franja: "8 a 10", lugar: "Dentro del baño de la habitación", consecuencias: "Fractura", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "María Sancho", fecha: "16/7/2024", franja: "2 a 4", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "María Sancho", fecha: "19/7/2024", franja: "0 a 2", lugar: "Al lado de la cama de la habitación", consecuencias: "Contusión", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Martín Nieto", fecha: "21/7/2024", franja: "12 a 14", lugar: "Dentro del baño de la habitación", consecuencias: "Herida", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Cayo Martín", fecha: "22/7/2024", franja: "0 a 2", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Lucrecia García", fecha: "24/7/2024", franja: "0 a 2", lugar: "Pasillo", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Valentín Vera", fecha: "25/7/2024", franja: "16 a 18", lugar: "Salón de la planta segunda", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Alfredo Palazuelos", fecha: "31/7/2024", franja: "16 a 18", lugar: "Dentro del baño geriátrico", consecuencias: "Contusión", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Alfredo Palazuelos", fecha: "2/8/2024", franja: "2 a 4", lugar: "Dentro del baño de la habitación", consecuencias: "Contusión", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Mariano Iglesias", fecha: "16/8/2024", franja: "14 a 16", lugar: "Dentro del baño geriátrico", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Agustín Peinado", fecha: "23/8/2024", franja: "4 a 6", lugar: "Al lado de la cama de la habitación", consecuencias: "TCE", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Elías Lara", fecha: "27/8/2024", franja: "18 a 20", lugar: "A los pies de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Josefina Perdiguero", fecha: "27/8/2024", franja: "20 a 22", lugar: "A los pies de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Alfredo Palazuelos", fecha: "11/9/2024", franja: "16 a 18", lugar: "Recepción", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "María Sancho", fecha: "21/9/2024", franja: "20 a 22", lugar: "Dentro del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Elías Lara", fecha: "22/9/2024", franja: "12 a 14", lugar: "Comedor", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Alfredo Palazuelos", fecha: "23/9/2024", franja: "10 a 12", lugar: "Dentro del ascensor", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Luis Rodríguez", fecha: "26/9/2024", franja: "2 a 4", lugar: "Dentro del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Luciano González", fecha: "26/9/2024", franja: "20 a 22", lugar: "En mitad de la habitación", consecuencias: "Herida", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Mariano Iglesias", fecha: "28/9/2024", franja: "14 a 16", lugar: "Dentro del baño geriátrico", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Alberto González", fecha: "1/10/2024", franja: "20 a 22", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Alberto González", fecha: "4/10/2024", franja: "22 a 0", lugar: "Puerta del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Alberto González", fecha: "9/10/2024", franja: "22 a 0", lugar: "Puerta del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Juan Victorio Calvo", fecha: "10/10/2024", franja: "0 a 2", lugar: "En mitad de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Luciano González", fecha: "13/10/2024", franja: "20 a 22", lugar: "Dentro del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Alberto González", fecha: "13/10/2024", franja: "22 a 0", lugar: "En mitad de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Alberto González", fecha: "17/10/2024", franja: "20 a 22", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Alberto González", fecha: "17/10/2024", franja: "6 a 8", lugar: "Salón de la planta primera", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Ascensión Sáiz", fecha: "17/10/2024", franja: "10 a 12", lugar: "Salón de la segunda planta", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Alfredo Palazuelos", fecha: "18/10/2024", franja: "8 a 10", lugar: "Puerta del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Elías Lara", fecha: "18/10/2024", franja: "10 a 12", lugar: "Salón de la segunda planta", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Juan Victorio Calvo", fecha: "19/10/2024", franja: "22 a 0", lugar: "A los pies de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Agustín Peinado", fecha: "19/10/2024", franja: "6 a 8", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Luciano González", fecha: "19/10/2024", franja: "20 a 22", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Juan Victorio Calvo", fecha: "19/10/2024", franja: "8 a 10", lugar: "En mitad de la habitación", consecuencias: "Sin consecuencias", sensor: "Desconocido" },
+            { id: generateUniqueId(), residente: "Juan Victorio Calvo", fecha: "19/10/2024", franja: "10 a 12", lugar: "Salón de la segunda planta", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Juan Victorio Calvo", fecha: "20/10/2024", franja: "16 a 18", lugar: "Pasillo", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Alfredo Palazuelos", fecha: "21/10/2024", franja: "4 a 6", lugar: "Puerta del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Juan Victorio Calvo", fecha: "26/10/2024", franja: "4 a 6", lugar: "Dentro del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Andrea Gutierrez", fecha: "26/10/2024", franja: "8 a 10", lugar: "Puerta del baño de la habitación", consecuencias: "Contusión", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Vicente Martínez", fecha: "27/10/2024", franja: "14 a 16", lugar: "Recepción", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Agustín Peinado", fecha: "2/11/2024", franja: "22 a 0", lugar: "Pasillo", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Alfredo Palazuelos", fecha: "3/11/2024", franja: "4 a 6", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Lucrecia García", fecha: "3/11/2024", franja: "16 a 18", lugar: "Sala de actividades", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Antonio del Valle", fecha: "4/11/2024", franja: "22 a 0", lugar: "Dentro del baño de la habitación", consecuencias: "Contusión", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "María Sancho", fecha: "7/11/2024", franja: "2 a 4", lugar: "Dentro del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Alberto González", fecha: "7/11/2024", franja: "16 a 18", lugar: "Planta primera", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Martín Nieto", fecha: "9/11/2024", franja: "14 a 16", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Martín Nieto", fecha: "10/11/2024", franja: "14 a 16", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Francisca Blanco", fecha: "13/11/2024", franja: "10 a 12", lugar: "Dentro del baño de la habitación", consecuencias: "Herida", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Manuela Vicente", fecha: "17/11/2024", franja: "14 a 16", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Alfredo Palazuelos", fecha: "21/11/2024", franja: "10 a 12", lugar: "Recepción", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Martín Nieto", fecha: "22/11/2024", franja: "16 a 18", lugar: "Salón de la segunda planta", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Mercedes Reguera", fecha: "28/11/2024", franja: "22 a 0", lugar: "A los pies de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
+            { id: generateUniqueId(), residente: "Carmen Yela", fecha: "14/5/2024", franja: "10 a 12", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Isabel Sanz", fecha: "5/6/2024", franja: "16 a 18", lugar: "Dentro del baño de la habitación", consecuencias: "Herida", sensor: "No hay sensor" },
+            { id: generateUniqueId(), residente: "Josefina Perdiguero", fecha: "21/6/2024", franja: "16 a 18", lugar: "Dentro del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" }
+        ];
+
+        data = data.map(item => {
+            return {
+                ...item,
+                residente: convertNameToCode(item.residente)
+            }
+        });
+
+        const filterFranjaSelect = document.getElementById('filterFranjaSelect');
+        const filterLugarSelect = document.getElementById('filterLugarSelect');
+        const filterConsecuenciasSelect = document.getElementById('filterConsecuenciasSelect');
+        const filterResidenteSelect = document.getElementById('filterResidenteSelect');
+        const filterSensorSelect = document.getElementById('filterSensorSelect');
+        const filterFromDate = document.getElementById('filterFromDate');
+        const filterToDate = document.getElementById('filterToDate');
+        const filterFromDateCompare = document.getElementById('filterFromDateCompare');
+        const filterToDateCompare = document.getElementById('filterToDateCompare');
+
+        const tbody = document.querySelector("#data-table tbody");
+        const ctx = document.getElementById('chart').getContext('2d');
+        const totalFallsElement = document.getElementById('totalFalls');
+        const visibleFallsElement = document.getElementById('visibleFalls');
+        const distinctResidentsElement = document.getElementById('distinctResidents');
+
+        const periodo1Btn = document.getElementById('periodo1Btn');
+        const periodo2Btn = document.getElementById('periodo2Btn');
+
+        let actionStack = [];
+        let currentChartType = 'franja';
+        let filteredData = [...data]; 
+
+        function filterData() {
+            const selectedFranja = filterFranjaSelect.value;
+            const selectedLugar = filterLugarSelect.value;
+            const selectedConsecuencias = filterConsecuenciasSelect.value;
+            const selectedResidente = filterResidenteSelect.value;
+            const selectedSensor = filterSensorSelect.value;
+            const fromDateValue = filterFromDate.value;
+            const toDateValue = filterToDate.value;
+
+            filteredData = data.filter(item => {
+                let pass = (selectedFranja === "" || item.franja === selectedFranja) &&
+                           (selectedLugar === "" || item.lugar === selectedLugar) &&
+                           (selectedConsecuencias === "" || item.consecuencias === selectedConsecuencias) &&
+                           (selectedResidente === "" || item.residente === selectedResidente) &&
+                           (selectedSensor === "" || item.sensor === selectedSensor);
+
+                if (fromDateValue && toDateValue) {
+                    const itemDate = dateStrToDate(item.fecha);
+                    const fromDateObj = new Date(fromDateValue);
+                    const toDateObj = new Date(toDateValue);
+                    if (itemDate < fromDateObj || itemDate > toDateObj) pass = false;
+                }
+
+                return pass;
+            });
+            renderTable(filteredData);
+            updateChart();
+        }
+
+        function filterDataForComparison() {
+            const fromDateCompareValue = filterFromDateCompare.value;
+            const toDateCompareValue = filterToDateCompare.value;
+
+            const selectedFranja = filterFranjaSelect.value;
+            const selectedLugar = filterLugarSelect.value;
+            const selectedConsecuencias = filterConsecuenciasSelect.value;
+            const selectedResidente = filterResidenteSelect.value;
+            const selectedSensor = filterSensorSelect.value;
+
+            let filtered = data.filter(item => {
+                let pass = (selectedFranja === "" || item.franja === selectedFranja) &&
+                           (selectedLugar === "" || item.lugar === selectedLugar) &&
+                           (selectedConsecuencias === "" || item.consecuencias === selectedConsecuencias) &&
+                           (selectedResidente === "" || item.residente === selectedResidente) &&
+                           (selectedSensor === "" || item.sensor === selectedSensor);
+
+                if (fromDateCompareValue && toDateCompareValue) {
+                    const itemDate = dateStrToDate(item.fecha);
+                    const fromDateObj = new Date(fromDateCompareValue);
+                    const toDateObj = new Date(toDateCompareValue);
+                    if (itemDate < fromDateObj || itemDate > toDateObj) pass = false;
+                } else {
+                    return false;
+                }
+
+                return pass;
+            });
+            return filtered;
+        }
+
+        function renderTable(fData) {
+            fData.sort((a, b) => dateStrToDate(a.fecha) - dateStrToDate(b.fecha));
+
+            tbody.innerHTML = "";
+            fData.forEach(item => {
+                const row = `<tr>
+                    <td>${item.residente}</td>
+                    <td>${item.fecha}</td>
+                    <td>${item.franja}</td>
+                    <td>${item.lugar}</td>
+                    <td>${item.consecuencias}</td>
+                    <td>${item.sensor}</td>
+                    <td><button class="btn btn-danger btn-sm delete-btn" data-id="${item.id}">Eliminar</button></td>
+                </tr>`;
+                tbody.innerHTML += row;
+            });
+            updateCounters(fData);
+        }
+
+        function initializeFilterSelects() {
+            const uniqueFranjas = [...new Set(data.map(d => d.franja))].sort((a, b) => {
+                const timeOrder = ["0 a 2","2 a 4","4 a 6","6 a 8","8 a 10","10 a 12","12 a 14","14 a 16","16 a 18","18 a 20","20 a 22","22 a 0"];
+                return timeOrder.indexOf(a) - timeOrder.indexOf(b);
+            });
+            const uniqueLugares = [...new Set(data.map(d => d.lugar))].sort();
+            const uniqueConsecuencias = [...new Set(data.map(d => d.consecuencias))].sort();
+            const uniqueResidentes = [...new Set(data.map(d => d.residente))].sort();
+            const uniqueSensor = [...new Set(data.map(d => d.sensor))].sort();
+            
+            uniqueFranjas.forEach(f => {
+                if (f !== '') {
+                    filterFranjaSelect.innerHTML += `<option value="${f}">${f}</option>`;
+                }
+            });
+
+            uniqueLugares.forEach(l => {
+                if (l !== '') {
+                    filterLugarSelect.innerHTML += `<option value="${l}">${l}</option>`;
+                }
+            });
+
+            uniqueConsecuencias.forEach(c => {
+                if (c !== '') {
+                    filterConsecuenciasSelect.innerHTML += `<option value="${c}">${c}</option>`;
+                }
+            });
+
+            uniqueResidentes.forEach(r => {
+                if (r !== '') {
+                    filterResidenteSelect.innerHTML += `<option value="${r}">${r}</option>`;
+                }
+            });
+
+            uniqueSensor.forEach(s => {
+                if (s !== '') {
+                    filterSensorSelect.innerHTML += `<option value="${s}">${s}</option>`;
+                }
+            });
+        }
+
+        function generateDateRange(startDate, endDate) {
+            const dates = [];
+            const currentDate = new Date(startDate);
+            while (currentDate <= endDate) {
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth() + 1;
+                const day = currentDate.getDate();
+                dates.push(`${day}/${month}/${year}`);
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+            return dates;
+        }
+
+        function getCaidasPorFecha(dataSet) {
+            const dateCount = {};
+            dataSet.forEach(item => {
+                dateCount[item.fecha] = (dateCount[item.fecha] || 0) + 1;
+            });
+
+            if (dataSet.length === 0) {
+                return { labels: [], counts: [] };
+            }
+            const dates = dataSet.map(d => dateStrToDate(d.fecha));
+            dates.sort((a,b) => a - b);
+            const minDate = dates[0];
+            const maxDate = dates[dates.length - 1];
+
+            const fullDateRange = generateDateRange(minDate, maxDate);
+            const labels = fullDateRange;
+            const counts = labels.map(d => dateCount[d] || 0);
+
+            return { labels, counts };
+        }
+
+        function getCaidasPorFranja(dataSet) {
+            const franjaCount = {};
+            dataSet.forEach(item => {
+                franjaCount[item.franja] = (franjaCount[item.franja] || 0) + 1;
+            });
+            const timeOrder = ["0 a 2","2 a 4","4 a 6","6 a 8","8 a 10","10 a 12","12 a 14","14 a 16","16 a 18","18 a 20","20 a 22","22 a 0"];
+            const labels = timeOrder.filter(franja => franjaCount[franja]);
+            const counts = labels.map(franja => franjaCount[franja]);
+            return { labels, counts };
+        }
+
+        function getCaidasPorLugar(dataSet) {
+            const lugarCount = {};
+            dataSet.forEach(item => {
+                lugarCount[item.lugar] = (lugarCount[item.lugar] || 0) + 1;
+            });
+            let labels = Object.keys(lugarCount).sort((a, b) => lugarCount[b] - lugarCount[a]);
+            let counts = labels.map(lugar => lugarCount[lugar]);
+            return { labels, counts };
+        }
+
+        function getCaidasPorConsecuencias(dataSet) {
+            const consecuenciasCount = {};
+            dataSet.forEach(item => {
+                consecuenciasCount[item.consecuencias] = (consecuenciasCount[item.consecuencias] || 0) + 1;
+            });
+            let labels = Object.keys(consecuenciasCount).sort((a, b) => consecuenciasCount[b] - consecuenciasCount[a]);
+            let counts = labels.map(consecuencia => consecuenciasCount[consecuencia]);
+            return { labels, counts };
+        }
+
+        function getCaidasPorLugarHabitacion(dataSet) {
+            const lugarHabitacionCount = {};
+            dataSet.forEach(item => {
+                if (item.lugar.toLowerCase().includes("habitación")) {
+                    let lugarNormalized = item.lugar.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    let lugarEspecifico = lugarNormalized.replace(/al lado de la cama de la habitacion|a los pies de la cama de la habitacion|en mitad de la habitacion|puerta del baño de la habitacion|dentro del baño de la habitacion/g, match => {
+                        switch(match) {
+                            case "al lado de la cama de la habitacion": return "Al lado de la cama";
+                            case "a los pies de la cama de la habitacion": return "A los pies de la cama";
+                            case "en mitad de la habitacion": return "En mitad de la habitación";
+                            case "puerta del baño de la habitacion": return "Puerta del baño";
+                            case "dentro del baño de la habitacion": return "Dentro del baño";
+                            default: return match;
+                        }
+                    });
+                    lugarEspecifico = lugarEspecifico.charAt(0).toUpperCase() + lugarEspecifico.slice(1);
+                    lugarHabitacionCount[lugarEspecifico] = (lugarHabitacionCount[lugarEspecifico] || 0) + 1;
+                }
+            });
+            let labels = Object.keys(lugarHabitacionCount).sort((a, b) => lugarHabitacionCount[b] - lugarHabitacionCount[a]);
+            let counts = labels.map(l => lugarHabitacionCount[l]);
+            return { labels, counts };
+        }
+
+        function getCaidasPorResidenteMin3(dataSet) {
+            const residenteCount = {};
+            dataSet.forEach(item => {
+                residenteCount[item.residente] = (residenteCount[item.residente] || 0) + 1;
+            });
+            const filteredResidentes = Object.keys(residenteCount).filter(residente => residenteCount[residente] >= 3);
+            const counts = filteredResidentes.map(r => residenteCount[r]).sort((a, b) => b - a);
+            filteredResidentes.sort((a, b) => residenteCount[b] - residenteCount[a]);
+            return { labels: filteredResidentes, counts };
+        }
+
+        Chart.register(ChartDataLabels);
+
+        let chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Número de caídas por franja horaria',
+                    data: [],
+                    backgroundColor: [],
+                    borderColor: [],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: ['Número de caídas por franja horaria', '     ', '     ', '     '],
+                        padding: { top: 50, bottom: 10 }
+                    },
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'end',
+                        formatter: function(value) {
+                            return value;
+                        },
+                        font: {
+                            weight: 'bold'
+                        },
+                        color: '#000'
+                    }
                 },
-                {
-                    label: '2021-2022 (70 residentes)',
-                    data: [37, 12, 8, 5, 11],
-                    backgroundColor: 'rgba(255, 206, 86, 0.6)',
-                },
-                {
-                    label: '2022-2023',
-                    data: [29, 12, 5, 6, 12],
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        precision:0
+                    }
+                }
+            },
+            plugins: [ChartDataLabels, whiteBackgroundPlugin]
+        });
+
+        function getChartDataForType(type, dataSet) {
+            let rawData;
+            if (type === 'franja') {
+                rawData = getCaidasPorFranja(dataSet);
+            } else if (type === 'lugar') {
+                rawData = getCaidasPorLugar(dataSet);
+            } else if (type === 'consecuencias') {
+                rawData = getCaidasPorConsecuencias(dataSet);
+            } else if (type === 'lugarHabitacion') {
+                rawData = getCaidasPorLugarHabitacion(dataSet);
+            } else if (type === 'residente') {
+                rawData = getCaidasPorResidenteMin3(dataSet);
+            } else if (type === 'fecha') {
+                rawData = getCaidasPorFecha(dataSet);
+            }
+            if (!rawData.labels) {
+                rawData.labels = [];
+                rawData.counts = [];
+            }
+            return rawData;
+        }
+
+        function renderChart(type) {
+            const compareMode = (filterFromDateCompare.value && filterToDateCompare.value);
+
+            let chartData1 = getChartDataForType(type, filteredData);
+            let labels1 = chartData1.labels;
+            let counts1 = chartData1.counts;
+
+            let chartData2 = { labels: [], counts: [] };
+            let counts2 = [];
+            if (compareMode) {
+                const secondFilteredData = filterDataForComparison();
+                chartData2 = getChartDataForType(type, secondFilteredData);
+
+                const allLabelsSet = new Set([...chartData1.labels, ...chartData2.labels]);
+                const allLabels = Array.from(allLabelsSet);
+
+                if (type === 'franja') {
+                    const timeOrder = ["0 a 2","2 a 4","4 a 6","6 a 8","8 a 10","10 a 12","12 a 14","14 a 16","16 a 18","18 a 20","20 a 22","22 a 0"];
+                    allLabels.sort((a, b) => timeOrder.indexOf(a) - timeOrder.indexOf(b));
+                } else if (type === 'fecha') {
+                    allLabels.sort((a, b) => {
+                        const dateA = dateStrToDate(a);
+                        const dateB = dateStrToDate(b);
+                        return dateA - dateB;
+                    });
+                } else {
+                    allLabels.sort();
+                }
+
+                const map1 = new Map();
+                chartData1.labels.forEach((label, index) => {
+                    map1.set(label, chartData1.counts[index]);
+                });
+
+                const map2 = new Map();
+                chartData2.labels.forEach((label, index) => {
+                    map2.set(label, chartData2.counts[index]);
+                });
+
+                const total1 = counts1.reduce((a,b) => a+b,0);
+                const total2 = chartData2.counts.reduce((a,b) => a+b,0);
+
+                const percentage1 = allLabels.map(label => {
+                    const count = map1.get(label) || 0;
+                    return total1 > 0 ? ((count / total1) * 100).toFixed(1) : 0;
+                });
+
+                const percentage2 = allLabels.map(label => {
+                    const count = map2.get(label) || 0;
+                    return total2 > 0 ? ((count / total2) * 100).toFixed(1) : 0;
+                });
+
+                labels1 = allLabels;
+                counts1 = percentage1;
+                counts2 = percentage2;
+            }
+
+            let chartLabel = '';
+            if (type === 'franja') chartLabel = 'Número de caídas por franja horaria';
+            else if (type === 'lugar') chartLabel = 'Número de caídas por lugar';
+            else if (type === 'consecuencias') chartLabel = 'Número de caídas por consecuencias';
+            else if (type === 'lugarHabitacion') chartLabel = 'Número de caídas por lugar dentro de la habitación';
+            else if (type === 'residente') chartLabel = 'Número de caídas por residente (3 o más caídas)';
+            else if (type === 'fecha') chartLabel = 'Número de caídas por fecha';
+
+            let datasets = [];
+            const colors = assignColors(labels1).map(c => c.replace('0.6','1'));
+
+            if (!compareMode) {
+                chart.options.plugins.legend.display = false;
+                datasets.push({
+                    label: chartLabel,
+                    data: counts1,
+                    backgroundColor: assignColors(labels1),
+                    borderColor: colors,
+                    borderWidth: 1
+                });
+                chart.options.plugins.title.text = [chartLabel + ` (Total: ${counts1.reduce((a,b)=>parseFloat(a)+parseFloat(b),0)})`, '     ', '     ', '     '];
+                chart.options.plugins.title.padding = { top: 50, bottom: 10 };
+                chart.options.scales.y.beginAtZero = true;
+                chart.options.plugins.datalabels.formatter = function(value) { return value; };
+            } else {
+                chart.options.plugins.legend.display = true;
+                datasets.push({
+                    label: `Periodo 1 (%)`,
+                    data: counts1,
                     backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                }
-            ]
-        };
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                });
+                datasets.push({
+                    label: `Periodo 2 (%)`,
+                    data: counts2,
+                    backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                });
 
-        // Configuración de la gráfica de Lugar de las caídas en la habitación
-        const lugarConfig = {
-            type: 'bar',
-            data: lugarData,
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    },
-                    title: {
-                        display: true,
-                        text: '% Lugar de las caídas en la habitación'
+                chart.options.plugins.title.text = [chartLabel + ' (Comparación en %)', '     ', '     ', '     '];
+                chart.options.plugins.title.padding = { top: 50, bottom: 10 };
+                chart.options.scales.y.beginAtZero = true;
+                chart.options.plugins.datalabels.formatter = function(value) {
+                    return value + '%';
+                };
+            }
+
+            if (type !== 'franja' && type !== 'fecha') {
+                const sortedColors = assignColors(labels1);
+                if (!compareMode) {
+                    const sorted = sortDataDescending(labels1, counts1, sortedColors);
+                    chart.data.labels = sorted.labels;
+                    datasets[0].data = sorted.counts;
+                    datasets[0].backgroundColor = sorted.colors;
+                    datasets[0].borderColor = sorted.colors.map(c => c.replace('0.6','1'));
+                } else {
+                    const sorted = sortDataDescending(labels1, counts1, sortedColors);
+                    chart.data.labels = sorted.labels;
+                    datasets[0].data = sorted.counts;
+                    datasets[0].backgroundColor = 'rgba(54, 162, 235, 0.6)';
+                    datasets[0].borderColor = 'rgba(54, 162, 235, 1)';
+                    datasets[1].data = sorted.labels.map(label => {
+                        const index = labels1.indexOf(label);
+                        return counts2[index] || 0;
+                    });
+                }
+            } else {
+                chart.data.labels = labels1;
+                if (!compareMode) {
+                    datasets[0].backgroundColor = assignColors(labels1);
+                    datasets[0].borderColor = colors;
+                }
+            }
+
+            chart.data.datasets = datasets;
+            chart.update();
+        }
+
+        function updateChart() {
+            renderChart(currentChartType);
+        }
+
+        function updateCounters(fData = data) {
+            const total = data.length;
+            totalFallsElement.innerText = total;
+            const visible = fData.length;
+            visibleFallsElement.innerText = visible;
+
+            const distinctResidents = new Set(fData.map(item => item.residente)).size;
+            distinctResidentsElement.innerText = distinctResidents;
+        }
+
+        filterFranjaSelect.addEventListener('change', filterData);
+        filterLugarSelect.addEventListener('change', filterData);
+        filterConsecuenciasSelect.addEventListener('change', filterData);
+        filterResidenteSelect.addEventListener('change', filterData);
+        filterSensorSelect.addEventListener('change', filterData);
+        filterFromDate.addEventListener('change', filterData);
+        filterToDate.addEventListener('change', filterData);
+        filterFromDateCompare.addEventListener('change', updateChart);
+        filterToDateCompare.addEventListener('change', updateChart);
+
+        periodo1Btn.addEventListener('click', function() {
+            setPeriodo1();
+            setActivePeriodoButton(this);
+            updateChart();
+        });
+
+        periodo2Btn.addEventListener('click', function() {
+            setPeriodo2();
+            setActivePeriodoButton(this);
+            updateChart();
+        });
+
+        function setPeriodo1() {
+            const today = new Date();
+            const currentYear = today.getFullYear();
+            const mayFirst = new Date(currentYear, 4, 1);
+
+            if (today < mayFirst) {
+                mayFirst.setFullYear(currentYear - 1);
+            }
+
+            const formatDate = (date) => {
+                const yyyy = date.getFullYear();
+                const mm = String(date.getMonth() + 1).padStart(2, '0');
+                const dd = String(date.getDate()).padStart(2, '0');
+                return `${yyyy}-${mm}-${dd}`;
+            };
+
+            filterFromDate.value = formatDate(mayFirst);
+            filterToDate.value = formatDate(today);
+            filterFromDateCompare.value = "";
+            filterToDateCompare.value = "";
+        }
+
+        function setPeriodo2() {
+            const today = new Date();
+            const currentYear = today.getFullYear();
+            const mayFirstCurrent = new Date(currentYear, 4, 1);
+
+            if (today < mayFirstCurrent) {
+                mayFirstCurrent.setFullYear(currentYear - 1);
+            }
+
+            const fromDate1 = new Date(mayFirstCurrent);
+            const toDate1 = new Date(today);
+
+            const fromDate2 = new Date(fromDate1);
+            fromDate2.setFullYear(fromDate2.getFullYear() - 1);
+            const toDate2 = new Date(toDate1);
+            toDate2.setFullYear(toDate2.getFullYear() - 1);
+
+            const formatDate = (date) => {
+                const yyyy = date.getFullYear();
+                const mm = String(date.getMonth() + 1).padStart(2, '0');
+                const dd = String(date.getDate()).padStart(2, '0');
+                return `${yyyy}-${mm}-${dd}`;
+            };
+
+            filterFromDate.value = formatDate(fromDate1);
+            filterToDate.value = formatDate(toDate1);
+            filterFromDateCompare.value = formatDate(fromDate2);
+            filterToDateCompare.value = formatDate(toDate2);
+        }
+
+        function setActivePeriodoButton(activeButton) {
+            const buttons = document.querySelectorAll('.period-buttons .btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            activeButton.classList.add('active');
+        }
+
+        document.getElementById('exportExcel').addEventListener('click', () => {
+            if (data.length === 0) {
+                alert('No hay datos para exportar.');
+                return;
+            }
+            const exportData = data.map(({id, ...rest}) => rest);
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Datos");
+            XLSX.writeFile(workbook, "RegistroCaidas.xlsx");
+        });
+
+        async function fetchRemoteData() {
+            try {
+                const response = await fetch(apiUrl);
+                const remoteData = await response.json();
+                const transformed = remoteData.map(row => ({
+                    id: row["id"] || generateUniqueId(),
+                    residente: convertNameToCode(row["Nombre del residente"] || ""),
+                    fecha: parseFecha(row["Fecha"]) || "",
+                    franja: row["Franja horaria"] || "",
+                    lugar: row["Lugar"] || "",
+                    consecuencias: row["Consecuencias"] || "",
+                    sensor: row["Sensor de Movimiento"] || ""
+                }));
+                data = [...data, ...transformed];
+            } catch (error) {
+                console.error("Error al cargar datos remotos:", error);
+            }
+        }
+
+        async function addRecordToAPI(record) {
+            try {
+                const payload = [{
+                    id: record.id,
+                    "Nombre del residente": record.residente,
+                    "Fecha": record.fecha,
+                    "Franja horaria": record.franja,
+                    "Lugar": record.lugar,
+                    "Consecuencias": record.consecuencias,
+                    "Sensor de Movimiento": record.sensor
+                }];
+                const res = await fetch(apiUrl, {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) {
+                    console.error("No se pudo agregar el dato a la API.");
+                }
+            } catch(err) {
+                console.error("Error al agregar dato remoto:", err);
+            }
+        }
+
+        async function deleteRecordFromAPI(item) {
+            try {
+                const deleteUrl = `${apiUrl}/id/${encodeURIComponent(item.id)}`;
+                const res = await fetch(deleteUrl, {method: "DELETE"});
+                if (!res.ok) {
+                    console.error("No se pudo eliminar el dato de la API.");
+                }
+            } catch(err) {
+                console.error("Error al eliminar dato remoto:", err);
+            }
+        }
+
+        async function deleteAllFromAPI() {
+            for (const item of data) {
+                await deleteRecordFromAPI(item);
+            }
+        }
+
+        async function addMultipleRecordsToAPI(records) {
+            if (records.length === 0) return;
+            const payload = records.map(r => ({
+                id: r.id,
+                "Nombre del residente": r.residente,
+                "Fecha": r.fecha,
+                "Franja horaria": r.franja,
+                "Lugar": r.lugar,
+                "Consecuencias": r.consecuencias,
+                "Sensor de Movimiento": r.sensor
+            }));
+            try {
+                const res = await fetch(apiUrl, {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) {
+                    console.error("No se pudo agregar datos a la API en lote.");
+                }
+            } catch(err) {
+                console.error("Error al agregar datos remotos en lote:", err);
+            }
+        }
+
+        document.getElementById('deleteAll').addEventListener('click', async () => {
+            if (data.length === 0) {
+                alert('No hay registros para eliminar.');
+                return;
+            }
+            if (confirm('¿Estás seguro de que deseas eliminar **todos** los registros? Esta acción no se puede deshacer.')) {
+                actionStack.push({ action: 'deleteAll', records: [...data] });
+                await deleteAllFromAPI();
+                data = [];
+                filteredData = [];
+                renderTable(filteredData);
+                updateChart();
+                updateButtonStates();
+                alert('Todos los registros han sido eliminados.');
+            }
+        });
+
+        function actualizarDatalistResidentes() {
+            const uniqueResidentes = [...new Set(data.map(d => d.residente))].sort();
+            const residentesList = document.getElementById('residentesList');
+            residentesList.innerHTML = "";
+            uniqueResidentes.forEach(res => {
+                const option = document.createElement('option');
+                option.value = res;
+                residentesList.appendChild(option);
+            });
+        }
+
+        function clearAllFilters() {
+            filterFranjaSelect.value = "";
+            filterLugarSelect.value = "";
+            filterConsecuenciasSelect.value = "";
+            filterResidenteSelect.value = "";
+            filterSensorSelect.value = "";
+            setDefaultDateFilters();
+            filterData();
+        }
+
+        document.getElementById('clearFiltersBtn').addEventListener('click', clearAllFilters);
+
+        document.getElementById('registroCaidas').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            let residente = document.getElementById('nombreResidente').value.trim();
+            let fecha = document.getElementById('fechaCaida').value;
+            let franja = document.getElementById('franjaHoraria').value;
+            let lugar = document.getElementById('lugarCaida').value;
+            let consecuencias = document.getElementById('consecuencias').value;
+            let sensor = document.getElementById('sensorMovimiento').value;
+
+            if (!residente || !fecha || !franja || !lugar || !consecuencias || !sensor) {
+                alert('Por favor, completa todos los campos del formulario.');
+                return;
+            }
+
+            const fechaFormateada = parseFecha(fecha);
+            if (!fechaFormateada) {
+                alert('Por favor, ingresa una fecha válida.');
+                return;
+            }
+
+            residente = convertNameToCode(residente);
+
+            const nuevoRegistro = {
+                id: generateUniqueId(),
+                residente,
+                fecha: fechaFormateada,
+                franja,
+                lugar,
+                consecuencias,
+                sensor
+            };
+
+            data.push(nuevoRegistro);
+            actionStack.push({ action: 'add', record: nuevoRegistro });
+            await addRecordToAPI(nuevoRegistro);
+            filterData();
+            updateChart();
+            this.reset();
+            updateButtonStates();
+            actualizarDatalistResidentes();
+
+            if (!filterResidenteSelect.querySelector(`option[value="${nuevoRegistro.residente}"]`)) {
+                filterResidenteSelect.innerHTML += `<option value="${nuevoRegistro.residente}">${nuevoRegistro.residente}</option>`;
+            }
+            alert('Caída registrada exitosamente');
+        });
+
+        document.querySelector("#data-table tbody").addEventListener('click', async function(e) {
+            if (e.target && e.target.classList.contains('delete-btn')) {
+                const id = e.target.getAttribute('data-id');
+                if (confirm('¿Estás seguro de que deseas eliminar este registro?')) {
+                    const index = data.findIndex(item => item.id === id);
+                    if (index !== -1) {
+                        const deletedRecord = data[index];
+                        actionStack.push({ action: 'delete', record: deletedRecord });
+                        await deleteRecordFromAPI(deletedRecord);
+                        data.splice(index, 1);
+                        filterData();
+                        updateChart();
+                        updateButtonStates();
+                        alert('Registro eliminado exitosamente');
                     }
                 }
             }
-        };
+        });
 
-        // Datos para la gráfica de Horas de las caídas
-        const horasData = {
-            labels: [
-                '8 a 10', '10 a 12', '12 a 14', '14 a 16', '16 a 18', '18 a 20', '20 a 22', '22 a 0', '0 a 2', '2 a 4', '4 a 6', '6 a 8'
-            ],
-            datasets: [
-                {
-                    label: '2018-2019',
-                    data: [10, 10, 4, 6, 10, 8, 13, 10, 12, 6, 7, 8],
-                    backgroundColor: 'rgba(153, 102, 255, 0.6)',
-                },
-                {
-                    label: '2021-2022 (70 residentes)',
-                    data: [20, 9, 7, 8, 16, 4, 15, 5, 3, 4, 5, 7],
-                    backgroundColor: 'rgba(255, 159, 64, 0.6)',
-                },
-                {
-                    label: '2022-2023',
-                    data: [11, 8, 6, 5, 10, 8, 13, 10, 5, 4, 5, 5],
-                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
-                }
-            ]
-        };
+        document.getElementById('btnFranja').addEventListener('click', function() {
+            currentChartType = 'franja';
+            setActiveButton(this);
+            updateChart();
+        });
 
-        // Configuración de la gráfica de Horas de las caídas
-        const horasConfig = {
-            type: 'bar',
-            data: horasData,
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    },
-                    title: {
-                        display: true,
-                        text: '(%) Horas de las caídas'
-                    }
-                }
+        document.getElementById('btnLugar').addEventListener('click', function() {
+            currentChartType = 'lugar';
+            setActiveButton(this);
+            updateChart();
+        });
+
+        document.getElementById('btnConsecuencias').addEventListener('click', function() {
+            currentChartType = 'consecuencias';
+            setActiveButton(this);
+            updateChart();
+        });
+
+        document.getElementById('btnLugarHabitacion').addEventListener('click', function() {
+            currentChartType = 'lugarHabitacion';
+            setActiveButton(this);
+            updateChart();
+        });
+
+        document.getElementById('btnResidente').addEventListener('click', function() {
+            currentChartType = 'residente';
+            setActiveButton(this);
+            updateChart();
+        });
+
+        document.getElementById('btnFecha').addEventListener('click', function() {
+            currentChartType = 'fecha';
+            setActiveButton(this);
+            updateChart();
+        });
+
+        function setActiveButton(button) {
+            const buttons = document.querySelectorAll('.chart-selector .btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+        }
+
+        function updateButtonStates() {
+            const deleteAllButton = document.getElementById('deleteAll');
+            if (data.length > 0) {
+                deleteAllButton.disabled = false;
+            } else {
+                deleteAllButton.disabled = true;
             }
-        };
+        }
 
-        // Renderizar las gráficas
-        window.onload = function() {
-            const lugarCtx = document.getElementById('chartLugarHabitacion').getContext('2d');
-            new Chart(lugarCtx, lugarConfig);
+        function downloadChartAsImage() {
+            try {
+                const link = document.createElement('a');
+                link.href = chart.toBase64Image('image/png', 1);
+                link.download = `grafica_${currentChartType}_${new Date().toISOString().slice(0,10)}.png`;
+                link.click();
+                alert('La gráfica ha sido descargada exitosamente en formato PNG.');
+            } catch (error) {
+                console.error('Error al descargar la gráfica:', error);
+                alert('Hubo un error al intentar descargar la gráfica. Por favor, inténtalo de nuevo.');
+            }
+        }
 
-            const horasCtx = document.getElementById('chartHoras').getContext('2d');
-            new Chart(horasCtx, horasConfig);
+        document.getElementById('downloadChart').addEventListener('click', downloadChartAsImage);
+
+        const importExcelBtn = document.getElementById('importExcelBtn');
+        const importExcelInput = document.getElementById('importExcelInput');
+
+        importExcelBtn.addEventListener('click', () => {
+            importExcelInput.click();
+        });
+
+        importExcelInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const dataBuffer = e.target.result;
+                const dataView = new Uint8Array(dataBuffer);
+                const workbook = XLSX.read(dataView, {type: 'array', raw: false, cellDates: false});
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, {defval: "", raw: false, cellDates: false});
+                importDataFromExcel(jsonData);
+            };
+            reader.onerror = function(ex) {
+                console.error(ex);
+                alert('Hubo un error al leer el archivo.');
+            };
+            reader.readAsArrayBuffer(file);
+            importExcelInput.value = '';
+        });
+
+        async function importDataFromExcel(jsonData) {
+            if (jsonData.length === 0) {
+                alert('El archivo Excel está vacío o no contiene datos válidos.');
+                return;
+            }
+
+            const expectedColumns = ["Nombre del residente", "Fecha", "Franja horaria", "Lugar", "Consecuencias", "Sensor de Movimiento"];
+            const fileColumns = Object.keys(jsonData[0]);
+            const missingColumns = expectedColumns.filter(col => !fileColumns.includes(col));
+
+            if (missingColumns.length > 0) {
+                alert(`Faltan las siguientes columnas en el archivo Excel: ${missingColumns.join(", ")}`);
+                return;
+            }
+
+            let recordsAdded = 0;
+            let recordsSkipped = 0;
+            let errorMessages = [];
+            let newRecords = [];
+
+            jsonData.forEach((row, index) => {
+                try {
+                    let residente = row["Nombre del residente"].toString().trim();
+                    let fechaOriginal = row["Fecha"].toString().trim();
+                    let franja = row["Franja horaria"].toString().trim();
+                    let lugar = row["Lugar"].toString().trim();
+                    let consecuencias = row["Consecuencias"].toString().trim();
+                    let sensor = row["Sensor de Movimiento"].toString().trim();
+
+                    if (!residente || !fechaOriginal || !franja || !lugar || !consecuencias || !sensor) {
+                        recordsSkipped++;
+                        errorMessages.push(`Fila ${index + 2}: Campos obligatorios faltantes.`);
+                        return;
+                    }
+
+                    const fechaFormateada = parseFecha(fechaOriginal);
+                    if (!fechaFormateada) {
+                        recordsSkipped++;
+                        errorMessages.push(`Fila ${index + 2}: Fecha inválida.`);
+                        return;
+                    }
+
+                    residente = convertNameToCode(residente);
+
+                    const duplicate = data.find(item => item.residente === residente && item.fecha === fechaFormateada && item.franja === franja && item.lugar === lugar);
+                    if (duplicate) {
+                        recordsSkipped++;
+                        errorMessages.push(`Fila ${index + 2}: Registro duplicado.`);
+                        return;
+                    }
+
+                    const nuevoRegistro = {
+                        id: generateUniqueId(),
+                        residente,
+                        fecha: fechaFormateada,
+                        franja,
+                        lugar,
+                        consecuencias,
+                        sensor
+                    };
+
+                    data.push(nuevoRegistro);
+                    actionStack.push({ action: 'add', record: nuevoRegistro });
+                    newRecords.push(nuevoRegistro);
+                    recordsAdded++;
+                } catch (error) {
+                    recordsSkipped++;
+                    errorMessages.push(`Fila ${index + 2}: Error al procesar el registro.`);
+                    console.error(`Error en la fila ${index + 2}:`, error);
+                }
+            });
+
+            actualizarFiltrosResidentes();
+            filterData();
+            updateChart();
+            updateButtonStates();
+
+            actualizarDatalistResidentes();
+
+            await addMultipleRecordsToAPI(newRecords);
+
+            let message = `Importación completada.\nRegistros añadidos: ${recordsAdded}\nRegistros omitidos: ${recordsSkipped}`;
+            if (errorMessages.length > 0) {
+                message += `\n\nErrores:\n${errorMessages.join("\n")}`;
+            }
+            alert(message);
+        }
+
+        function actualizarFiltrosResidentes() {
+            const uniqueResidentes = [...new Set(data.map(d => d.residente))].sort();
+            filterResidenteSelect.innerHTML = `<option value="">Todos</option>`;
+            uniqueResidentes.forEach(r => {
+                filterResidenteSelect.innerHTML += `<option value="${r}">${r}</option>`;
+            });
+        }
+
+        function setDefaultDateFilters() {
+            const today = new Date();
+            const currentYear = today.getFullYear();
+            const mayFirst = new Date(currentYear, 4, 1);
+
+            if (today < mayFirst) {
+                mayFirst.setFullYear(currentYear - 1);
+            }
+
+            const formatDate = (date) => {
+                const yyyy = date.getFullYear();
+                const mm = String(date.getMonth() + 1).padStart(2, '0');
+                const dd = String(date.getDate()).padStart(2, '0');
+                return `${yyyy}-${mm}-${dd}`;
+            };
+
+            filterFromDate.value = formatDate(mayFirst);
+            filterToDate.value = formatDate(today);
+            filterFromDateCompare.value = "";
+            filterToDateCompare.value = "";
+        }
+
+        function downloadChartAsImage() {
+            try {
+                const link = document.createElement('a');
+                link.href = chart.toBase64Image('image/png', 1);
+                link.download = `grafica_${currentChartType}_${new Date().toISOString().slice(0,10)}.png`;
+                link.click();
+                alert('La gráfica ha sido descargada exitosamente en formato PNG.');
+            } catch (error) {
+                console.error('Error al descargar la gráfica:', error);
+                alert('Hubo un error al intentar descargar la gráfica. Por favor, inténtalo de nuevo.');
+            }
+        }
+
+        // NUEVAS FUNCIONES Y VARIABLES PARA LA GRÁFICA HISTÓRICA
+        const historicalData = [
+            { label: "2014-2015", value: 168 },
+            { label: "2015-2016", value: 167 },
+            { label: "2016-2017", value: 178 },
+            { label: "2017-2018", value: 135 },
+            { label: "2018-2019", value: 131 },
+            { label: "2021-2022(70 residentes)", value: 117 },
+            { label: "2022-2023", value: 157 }
+        ];
+
+        function sumFallsInRange(dataSet, fromDateStr, toDateStr) {
+            const fromDate = dateStrToDate(parseFecha(fromDateStr));
+            const toDate = dateStrToDate(parseFecha(toDateStr));
+            let count = 0;
+            dataSet.forEach(item => {
+                const itemDate = dateStrToDate(item.fecha);
+                if (itemDate >= fromDate && itemDate <= toDate) {
+                    count++;
+                }
+            });
+            return count;
+        }
+
+        function generateNewPeriods(dataSet) {
+            const startYear = 2023; 
+            const endYear = new Date().getFullYear() + 1; 
+            const newPeriods = [];
+
+            for (let year = startYear; year <= endYear; year++) {
+                const fromDateStr = `1/5/${year}`;
+                const toDateStr = `30/4/${year+1}`;
+                const fallsCount = sumFallsInRange(dataSet, fromDateStr, toDateStr);
+                newPeriods.push({ label: `${year}-${year+1}`, value: fallsCount });
+            }
+
+            return newPeriods;
+        }
+
+        let historicalChart; 
+
+        function renderHistoricalChart() {
+            const chartHistoricoCtx = document.getElementById('chartHistorico').getContext('2d');
+
+            const newPeriods = generateNewPeriods(data);
+            const filteredNewPeriods = newPeriods.filter(p => {
+                return !historicalData.some(h => h.label === p.label); 
+            });
+
+            const combinedData = [...historicalData, ...filteredNewPeriods];
+
+            const labels = combinedData.map(d => d.label);
+            const values = combinedData.map(d => d.value);
+
+            const backgroundColors = assignColors(labels); 
+            const borderColors = backgroundColors.map(c => c.replace('0.6','1'));
+
+            if (historicalChart) {
+                historicalChart.destroy();
+            }
+
+            historicalChart = new Chart(chartHistoricoCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Caídas registradas',
+                        data: values,
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Caídas en un año',
+                            padding: { top: 30, bottom: 10 }
+                        },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'end',
+                            formatter: function(value) {
+                                return value;
+                            },
+                            font: {
+                                weight: 'bold'
+                            },
+                            color: '#000'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                },
+                plugins: [ChartDataLabels, whiteBackgroundPlugin]
+            });
+        }
+
+        document.getElementById('updateHistoricalChart').addEventListener('click', function() {
+            renderHistoricalChart();
+            alert('Gráfica histórica actualizada');
+        });
+
+        window.onload = async function() {
+            await fetchRemoteData();
+            initializeFilterSelects();
+            setDefaultDateFilters();
+            filterData();
+            updateChart();
+            updateCounters(filteredData);
+            document.getElementById('btnFranja').classList.add('active');
+            updateButtonStates();
+            actualizarDatalistResidentes();
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            // Llamamos a la función para renderizar la gráfica histórica tras cargar los datos
+            renderHistoricalChart();
         };
     </script>
 </body>
