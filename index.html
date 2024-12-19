@@ -332,7 +332,7 @@
                 </div>
             </div>
 
-            <!-- NUEVA SECCIÓN DE GRÁFICAS CON BOTONES DE CAMBIO -->
+            <!-- NUEVA SECCIÓN DE GRÁFICAS ADICIONALES CON CORRECCIONES -->
             <div class="card">
                 <div class="card-header">
                     <h5>Gráficas Adicionales</h5>
@@ -363,7 +363,7 @@
                     </div>
                 </div>
             </div>
-            <!-- FIN NUEVA SECCIÓN DE GRÁFICAS CON BOTONES DE CAMBIO -->
+            <!-- FIN NUEVA SECCIÓN DE GRÁFICAS ADICIONALES CON CORRECCIONES -->
 
         </main>
     </div>
@@ -807,11 +807,11 @@
                     let lugarNormalized = item.lugar.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                     let lugarEspecifico = lugarNormalized.replace(/al lado de la cama de la habitacion|a los pies de la cama de la habitacion|en mitad de la habitacion|puerta del baño de la habitacion|dentro del baño de la habitacion/g, match => {
                         switch(match) {
-                            case "al lado de la cama de la habitacion": return "Al lado de la cama";
-                            case "a los pies de la cama de la habitacion": return "A los pies de la cama";
+                            case "al lado de la cama de la habitacion": return "Al lado de la cama de la habitación";
+                            case "a los pies de la cama de la habitacion": return "A los pies de la cama de la habitación";
                             case "en mitad de la habitacion": return "En mitad de la habitación";
-                            case "puerta del baño de la habitacion": return "Puerta del baño";
-                            case "dentro del baño de la habitacion": return "Dentro del baño";
+                            case "puerta del baño de la habitacion": return "En la puerta del baño de la habitación";
+                            case "dentro del baño de la habitacion": return "Dentro del baño de la habitación";
                             default: return match;
                         }
                     });
@@ -1541,8 +1541,9 @@
             });
 
             const combinedData = [...historicalData, ...filteredNewPeriods];
-            // Solo 5 periodos: tomamos los últimos 5
-            const lastFive = combinedData.slice(-5);
+            // **Modificación**: Incluir todos los periodos históricos sin limitar a los últimos cinco
+            // const lastFive = combinedData.slice(-5); // Eliminar esta línea
+            const lastFive = combinedData; // Incluir todos los periodos
 
             const labels = lastFive.map(d => d.label);
             const values = lastFive.map(d => d.value);
@@ -1599,78 +1600,6 @@
             });
         }
 
-        let consequencesChart;
-        function renderConsequencesChart() {
-            const chartConsecuenciasCtx = document.getElementById('chartConsecuenciasHistorico').getContext('2d');
-
-            const newPeriods = generateNewConsequencesPeriods(data);
-            const combinedPeriods = [...consequencesBaseData.periods, ...newPeriods];
-            // Limitar a los últimos 5 periodos
-            const limitedPeriods = combinedPeriods.slice(-5);
-
-            const labels = consequencesBaseData.labels;
-            const allPeriodLabels = limitedPeriods.map(p => p.label);
-            const palette = assignColors(allPeriodLabels);
-
-            const datasets = limitedPeriods.map((period, index) => {
-                const bgColor = palette[index];
-                const borderColor = bgColor.replace('0.6','1');
-                return {
-                    label: period.label,
-                    data: period.data.map(d => parseFloat(d.toFixed(0))),
-                    backgroundColor: bgColor,
-                    borderColor: borderColor,
-                    borderWidth: 1
-                };
-            });
-
-            if (consequencesChart) {
-                consequencesChart.destroy();
-            }
-
-            consequencesChart = new Chart(chartConsecuenciasCtx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: datasets
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            display: true
-                        },
-                        title: {
-                            display: true,
-                            text: 'Consecuencias de las caídas (En % del total de caídas)',
-                            padding: { top: 30, bottom: 10 }
-                        },
-                        datalabels: {
-                            anchor: 'end',
-                            align: 'end',
-                            formatter: function(value) {
-                                return value;
-                            },
-                            font: {
-                                weight: 'bold'
-                            },
-                            color: '#000'
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Porcentaje (%)'
-                            }
-                        }
-                    }
-                },
-                plugins: [ChartDataLabels, whiteBackgroundPlugin]
-            });
-        }
-
         // NUEVOS DATOS BASE PARA LUGAR HABITACIÓN
         const lugarHabitacionBaseData = {
             labels: [
@@ -1692,6 +1621,15 @@
                 {
                     label: "2022-2023",
                     data: [29,12,5,6,12]
+                },
+                // **Nuevos Periodos Añadidos**
+                {
+                    label: "2023-2024",
+                    data: [0,0,0,0,0] // Inicializar con 0, se actualizará dinámicamente
+                },
+                {
+                    label: "2024-2025",
+                    data: [0,0,0,0,0] // Inicializar con 0, se actualizará dinámicamente
                 }
             ]
         };
@@ -1720,6 +1658,7 @@
                                 default: return match;
                             }
                         });
+                        lugarEspecifico = lugarEspecifico.charAt(0).toUpperCase() + lugarEspecifico.slice(1);
                         // Contabilizar si corresponde a una categoría
                         const cat = lugarHabitacionBaseData.labels.find(l => l === lugarEspecifico);
                         if (cat) {
@@ -1737,10 +1676,12 @@
             return percentages;
         }
 
+        // Asegurarse de que los nuevos periodos se generen correctamente
         function generateNewLugarHabitacionPeriods(dataSet) {
             const startYear = 2023;
-            const endYear = new Date().getFullYear() + 1;
+            const endYear = 2024; // Cambiado para incluir solo 2023-2024 y 2024-2025
             const newPeriods = [];
+
             for (let year = startYear; year <= endYear; year++) {
                 const fromDateStr = `1/5/${year}`;
                 const toDateStr = `30/4/${year+1}`;
@@ -1762,8 +1703,9 @@
 
             const newPeriods = generateNewLugarHabitacionPeriods(data);
             const combinedPeriods = [...lugarHabitacionBaseData.periods, ...newPeriods];
-            // Limitamos a últimos 5
-            const limitedPeriods = combinedPeriods.slice(-5);
+            // **Modificación**: Limitar a los últimos dos periodos específicos (2023-2024 y 2024-2025)
+            // const limitedPeriods = combinedPeriods.slice(-5); // Eliminar esta línea
+            const limitedPeriods = combinedPeriods.slice(-2); // Incluir solo 2023-2024 y 2024-2025
 
             const labels = lugarHabitacionBaseData.labels;
             const allPeriodLabels = limitedPeriods.map(p => p.label);
@@ -1806,7 +1748,7 @@
                             anchor: 'end',
                             align: 'end',
                             formatter: function(value) {
-                                return value;
+                                return value + '%'; // Añadido '%' para mayor claridad
                             },
                             font: {
                                 weight: 'bold'
@@ -1819,7 +1761,7 @@
                             beginAtZero: true,
                             title: {
                                 display: true,
-                                text: 'Values'
+                                text: 'Porcentaje (%)'
                             }
                         }
                     }
@@ -1876,7 +1818,7 @@
 
         function generateNewHorasPeriods(dataSet) {
             const startYear = 2023;
-            const endYear = new Date().getFullYear() + 1;
+            const endYear = 2024; // Cambiado para incluir solo 2023-2024 y 2024-2025
             const newPeriods = [];
             for (let year = startYear; year <= endYear; year++) {
                 const fromDateStr = `1/5/${year}`;
@@ -1899,8 +1841,8 @@
 
             const newPeriods = generateNewHorasPeriods(data);
             const combinedPeriods = [...horasBaseData.periods, ...newPeriods];
-            // Solo últimos 5
-            const limitedPeriods = combinedPeriods.slice(-5);
+            // Limitar a los últimos dos periodos específicos (2023-2024 y 2024-2025)
+            const limitedPeriods = combinedPeriods.slice(-2); 
 
             const labels = horasBaseData.labels;
             const allPeriodLabels = limitedPeriods.map(p => p.label);
@@ -1943,7 +1885,7 @@
                             anchor: 'end',
                             align: 'end',
                             formatter: function(value) {
-                                return value;
+                                return value + '%'; // Añadido '%' para mayor claridad
                             },
                             font: {
                                 weight: 'bold'
@@ -1956,7 +1898,7 @@
                             beginAtZero: true,
                             title: {
                                 display: true,
-                                text: 'Values'
+                                text: 'Porcentaje (%)'
                             }
                         }
                     }
@@ -1965,43 +1907,85 @@
             });
         }
 
-        document.getElementById('btnHistorico').addEventListener('click', function() {
-            document.getElementById('chartHistoricoContainer').style.display = 'block';
-            document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'none';
-            document.getElementById('chartLugarHabitacionContainer').style.display = 'none';
-            document.getElementById('chartHorasContainer').style.display = 'none';
-            setActiveChartSection(this);
-        });
+        // Nuevas funciones para graficar Consecuencias Históricas
+        let consequencesChart;
+        function renderConsequencesChart() {
+            const chartConsecuenciasCtx = document.getElementById('chartConsecuenciasHistorico').getContext('2d');
 
-        document.getElementById('btnConsecuenciasHistoricas').addEventListener('click', function() {
-            document.getElementById('chartHistoricoContainer').style.display = 'none';
-            document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'block';
-            document.getElementById('chartLugarHabitacionContainer').style.display = 'none';
-            document.getElementById('chartHorasContainer').style.display = 'none';
-            setActiveChartSection(this);
-        });
+            const newPeriods = generateNewConsequencesPeriods(data);
+            const combinedPeriods = [...consequencesBaseData.periods, ...newPeriods];
+            // Limitar a los últimos cinco periodos
+            const limitedPeriods = combinedPeriods.slice(-5);
 
-        document.getElementById('btnLugarHabitacionHistorico').addEventListener('click', function() {
-            document.getElementById('chartHistoricoContainer').style.display = 'none';
-            document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'none';
-            document.getElementById('chartLugarHabitacionContainer').style.display = 'block';
-            document.getElementById('chartHorasContainer').style.display = 'none';
-            setActiveChartSection(this);
-        });
+            const labels = consequencesBaseData.labels;
+            const allPeriodLabels = limitedPeriods.map(p => p.label);
+            const palette = assignColors(allPeriodLabels);
 
-        document.getElementById('btnHorasHistorico').addEventListener('click', function() {
-            document.getElementById('chartHistoricoContainer').style.display = 'none';
-            document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'none';
-            document.getElementById('chartLugarHabitacionContainer').style.display = 'none';
-            document.getElementById('chartHorasContainer').style.display = 'block';
-            setActiveChartSection(this);
-        });
+            const datasets = limitedPeriods.map((period, index) => {
+                const bgColor = palette[index];
+                const borderColor = bgColor.replace('0.6','1');
+                return {
+                    label: period.label,
+                    data: period.data.map(d => parseFloat(d.toFixed(0))),
+                    backgroundColor: bgColor,
+                    borderColor: borderColor,
+                    borderWidth: 1
+                };
+            });
 
-        function setActiveChartSection(activeButton) {
-            const buttons = document.querySelectorAll('.chart-selector .btn');
-            buttons.forEach(btn => btn.classList.remove('active'));
-            activeButton.classList.add('active');
+            if (consequencesChart) {
+                consequencesChart.destroy();
+            }
+
+            consequencesChart = new Chart(chartConsecuenciasCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true
+                        },
+                        title: {
+                            display: true,
+                            text: 'Consecuencias de las caídas (En % del total de caídas)',
+                            padding: { top: 30, bottom: 10 }
+                        },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'end',
+                            formatter: function(value) {
+                                return value + '%';
+                            },
+                            font: {
+                                weight: 'bold'
+                            },
+                            color: '#000'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Porcentaje (%)'
+                            }
+                        }
+                    }
+                },
+                plugins: [ChartDataLabels, whiteBackgroundPlugin]
+            });
         }
+
+        // Datos originales de caídas históricas y consecuencias
+        // Se ha asegurado que todos los periodos necesarios están incluidos
+
+        // NUEVA SECCIÓN DE GRÁFICAS ADICIONALES CON CORRECCIONES
+
+        // Gráficas adicionales ya están implementadas arriba
 
         function initializeChartSections() {
             document.getElementById('chartHistoricoContainer').style.display = 'block';
@@ -2009,6 +1993,12 @@
             document.getElementById('chartLugarHabitacionContainer').style.display = 'none';
             document.getElementById('chartHorasContainer').style.display = 'none';
             setActiveChartSection(document.getElementById('btnHistorico'));
+        }
+
+        function setActiveChartSection(activeButton) {
+            const buttons = document.querySelectorAll('.chart-selector .btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            activeButton.classList.add('active');
         }
 
         function setDefaultDateFilters() {
