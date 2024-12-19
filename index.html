@@ -802,39 +802,26 @@
 
         function getCaidasPorLugarHabitacion(dataSet) {
             const lugarHabitacionCount = {};
-            const categories = lugarHabitacionBaseData.labels; 
-            categories.forEach(c => lugarHabitacionCount[c] = 0);
-            let total = 0;
-
             dataSet.forEach(item => {
-                const itemDate = dateStrToDate(item.fecha);
-                // Solo filtrado temporal y espacial se hace fuera
-                // Aquí solo contamos sobre todo el dataset filtrado por fechas.
-                // Vamos a normalizar lugar:
-                let lugarNormalized = item.lugar.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                let lugarEspecifico = lugarNormalized.replace(/al lado de la cama de la habitacion|a los pies de la cama de la habitacion|en mitad de la habitacion|puerta del baño de la habitacion|dentro del baño de la habitacion/g, match => {
-                    switch(match) {
-                        case "al lado de la cama de la habitacion": return "Al lado de la cama de la habitación";
-                        case "a los pies de la cama de la habitacion": return "A los pies de la cama de la habitación";
-                        case "en mitad de la habitacion": return "En mitad de la habitación";
-                        case "puerta del baño de la habitacion": return "En la puerta del baño de la habitación";
-                        case "dentro del baño de la habitacion": return "Dentro del baño de la habitación";
-                        default: return match;
-                    }
-                });
-
-                // Si lugarEspecifico es una de las categorías "en la habitación"
-                if (categories.includes(lugarEspecifico)) {
-                    lugarHabitacionCount[lugarEspecifico]++;
-                    total++;
+                if (item.lugar.toLowerCase().includes("habitación")) {
+                    let lugarNormalized = item.lugar.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    let lugarEspecifico = lugarNormalized.replace(/al lado de la cama de la habitacion|a los pies de la cama de la habitacion|en mitad de la habitacion|puerta del baño de la habitacion|dentro del baño de la habitacion/g, match => {
+                        switch(match) {
+                            case "al lado de la cama de la habitacion": return "Al lado de la cama";
+                            case "a los pies de la cama de la habitacion": return "A los pies de la cama";
+                            case "en mitad de la habitacion": return "En mitad de la habitación";
+                            case "puerta del baño de la habitacion": return "Puerta del baño";
+                            case "dentro del baño de la habitacion": return "Dentro del baño";
+                            default: return match;
+                        }
+                    });
+                    lugarEspecifico = lugarEspecifico.charAt(0).toUpperCase() + lugarEspecifico.slice(1);
+                    lugarHabitacionCount[lugarEspecifico] = (lugarHabitacionCount[lugarEspecifico] || 0) + 1;
                 }
             });
-
-            const percentages = categories.map(cat => {
-                return total > 0 ? Math.round((lugarHabitacionCount[cat] / total) * 100) : 0;
-            });
-
-            return { labels: categories, counts: percentages };
+            let labels = Object.keys(lugarHabitacionCount).sort((a, b) => lugarHabitacionCount[b] - lugarHabitacionCount[a]);
+            let counts = labels.map(l => lugarHabitacionCount[l]);
+            return { labels, counts };
         }
 
         function getCaidasPorResidenteMin3(dataSet) {
@@ -1419,6 +1406,7 @@
             });
         });
 
+        // Datos originales de caídas históricas y consecuencias
         const historicalData = [
             { label: "2014-2015", value: 168 },
             { label: "2015-2016", value: 167 },
@@ -1459,6 +1447,7 @@
             return newPeriods;
         }
 
+        // Consecuencias históricas base
         const consequencesBaseData = {
             labels: ["Sin consecuencias","Contusión","Herida","TCE","Fractura cadera","Fractura"],
             periods: [
@@ -1552,9 +1541,11 @@
             });
 
             const combinedData = [...historicalData, ...filteredNewPeriods];
+            // Solo 5 periodos: tomamos los últimos 5
+            const lastFive = combinedData.slice(-5);
 
-            const labels = combinedData.map(d => d.label);
-            const values = combinedData.map(d => d.value);
+            const labels = lastFive.map(d => d.label);
+            const values = lastFive.map(d => d.value);
 
             const backgroundColors = assignColors(labels); 
             const borderColors = backgroundColors.map(c => c.replace('0.6','1'));
@@ -1614,12 +1605,14 @@
 
             const newPeriods = generateNewConsequencesPeriods(data);
             const combinedPeriods = [...consequencesBaseData.periods, ...newPeriods];
+            // Limitar a los últimos 5 periodos
+            const limitedPeriods = combinedPeriods.slice(-5);
 
             const labels = consequencesBaseData.labels;
-            const allPeriodLabels = combinedPeriods.map(p => p.label);
+            const allPeriodLabels = limitedPeriods.map(p => p.label);
             const palette = assignColors(allPeriodLabels);
 
-            const datasets = combinedPeriods.map((period, index) => {
+            const datasets = limitedPeriods.map((period, index) => {
                 const bgColor = palette[index];
                 const borderColor = bgColor.replace('0.6','1');
                 return {
@@ -1678,6 +1671,7 @@
             });
         }
 
+        // NUEVOS DATOS BASE PARA LUGAR HABITACIÓN
         const lugarHabitacionBaseData = {
             labels: [
                 "Al lado de la cama de la habitación",
@@ -1702,6 +1696,47 @@
             ]
         };
 
+        function getLugarHabitacionCountsInRange(dataSet, fromDateStr, toDateStr) {
+            const fromDate = dateStrToDate(parseFecha(fromDateStr));
+            const toDate = dateStrToDate(parseFecha(toDateStr));
+            const categories = lugarHabitacionBaseData.labels;
+            let total = 0;
+            const counts = {};
+            categories.forEach(c => counts[c] = 0);
+
+            dataSet.forEach(item => {
+                const itemDate = dateStrToDate(item.fecha);
+                if (itemDate >= fromDate && itemDate <= toDate) {
+                    // Normalizar lugar
+                    if (item.lugar.toLowerCase().includes("habitación")) {
+                        let lugarNormalized = item.lugar.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                        let lugarEspecifico = lugarNormalized.replace(/al lado de la cama de la habitacion|a los pies de la cama de la habitacion|en mitad de la habitacion|puerta del baño de la habitacion|dentro del baño de la habitacion/g, match => {
+                            switch(match) {
+                                case "al lado de la cama de la habitacion": return "Al lado de la cama de la habitación";
+                                case "a los pies de la cama de la habitacion": return "A los pies de la cama de la habitación";
+                                case "en mitad de la habitacion": return "En mitad de la habitación";
+                                case "puerta del baño de la habitacion": return "En la puerta del baño de la habitación";
+                                case "dentro del baño de la habitacion": return "Dentro del baño de la habitación";
+                                default: return match;
+                            }
+                        });
+                        // Contabilizar si corresponde a una categoría
+                        const cat = lugarHabitacionBaseData.labels.find(l => l === lugarEspecifico);
+                        if (cat) {
+                            counts[cat]++;
+                            total++;
+                        }
+                    }
+                }
+            });
+
+            const percentages = categories.map(cat => {
+                return total > 0 ? Math.round((counts[cat] / total) * 100) : 0;
+            });
+
+            return percentages;
+        }
+
         function generateNewLugarHabitacionPeriods(dataSet) {
             const startYear = 2023;
             const endYear = new Date().getFullYear() + 1;
@@ -1709,22 +1744,12 @@
             for (let year = startYear; year <= endYear; year++) {
                 const fromDateStr = `1/5/${year}`;
                 const toDateStr = `30/4/${year+1}`;
-                // Usamos la función ya existente en getCaidasPorLugarHabitacion,
-                // Creamos un subset temporal con las fechas y llamamos a la función, 
-                // pero para simplicidad, ya que ya filtramos 'dataSet', no lo necesitamos, 
-                // simplemente reutilizamos la lógica:
-                const periodData = dataSet.filter(item => {
-                    const itemDate = dateStrToDate(item.fecha);
-                    const fromDate = dateStrToDate(parseFecha(fromDateStr));
-                    const toDate = dateStrToDate(parseFecha(toDateStr));
-                    return itemDate >= fromDate && itemDate <= toDate;
-                });
-                const { counts } = getCaidasPorLugarHabitacion(periodData);
-                const total = counts.reduce((a,b)=>a+b,0);
+                const percentages = getLugarHabitacionCountsInRange(dataSet, fromDateStr, toDateStr);
+                const total = percentages.reduce((a,b)=>a+b,0);
                 if (total > 0) {
                     newPeriods.push({
                         label: `${year}-${year+1}`,
-                        data: counts.map(p => parseFloat(p.toFixed(0)))
+                        data: percentages.map(p => parseFloat(p.toFixed(0)))
                     });
                 }
             }
@@ -1737,12 +1762,14 @@
 
             const newPeriods = generateNewLugarHabitacionPeriods(data);
             const combinedPeriods = [...lugarHabitacionBaseData.periods, ...newPeriods];
+            // Limitamos a últimos 5
+            const limitedPeriods = combinedPeriods.slice(-5);
 
             const labels = lugarHabitacionBaseData.labels;
-            const allPeriodLabels = combinedPeriods.map(p => p.label);
+            const allPeriodLabels = limitedPeriods.map(p => p.label);
             const palette = assignColors(allPeriodLabels);
 
-            const datasets = combinedPeriods.map((period, index) => {
+            const datasets = limitedPeriods.map((period, index) => {
                 const bgColor = palette[index];
                 const borderColor = bgColor.replace('0.6','1');
                 return {
@@ -1801,6 +1828,7 @@
             });
         }
 
+        // NUEVOS DATOS BASE PARA HORAS DE LAS CAÍDAS
         const horasBaseData = {
             labels: ["8 a 10","10 a 12","12 a 14","14 a 16","16 a 18","18 a 20","20 a 22","22 a 0","0 a 2","2 a 4","4 a 6","6 a 8"],
             periods: [
@@ -1830,6 +1858,7 @@
             dataSet.forEach(item => {
                 const itemDate = dateStrToDate(item.fecha);
                 if (itemDate >= fromDate && itemDate <= toDate) {
+                    // item.franja da la franja horaria directamente
                     const f = categories.find(cat => cat === item.franja);
                     if (f) {
                         counts[f]++;
@@ -1852,13 +1881,7 @@
             for (let year = startYear; year <= endYear; year++) {
                 const fromDateStr = `1/5/${year}`;
                 const toDateStr = `30/4/${year+1}`;
-                const periodData = dataSet.filter(item => {
-                    const itemDate = dateStrToDate(item.fecha);
-                    const fromDate = dateStrToDate(parseFecha(fromDateStr));
-                    const toDate = dateStrToDate(parseFecha(toDateStr));
-                    return itemDate >= fromDate && itemDate <= toDate;
-                });
-                const percentages = getHorasCountsInRange(periodData, fromDateStr, toDateStr);
+                const percentages = getHorasCountsInRange(dataSet, fromDateStr, toDateStr);
                 const total = percentages.reduce((a,b)=>a+b,0);
                 if (total > 0) {
                     newPeriods.push({
@@ -1876,12 +1899,14 @@
 
             const newPeriods = generateNewHorasPeriods(data);
             const combinedPeriods = [...horasBaseData.periods, ...newPeriods];
+            // Solo últimos 5
+            const limitedPeriods = combinedPeriods.slice(-5);
 
             const labels = horasBaseData.labels;
-            const allPeriodLabels = combinedPeriods.map(p => p.label);
+            const allPeriodLabels = limitedPeriods.map(p => p.label);
             const palette = assignColors(allPeriodLabels);
 
-            const datasets = combinedPeriods.map((period, index) => {
+            const datasets = limitedPeriods.map((period, index) => {
                 const bgColor = palette[index];
                 const borderColor = bgColor.replace('0.6','1');
                 return {
@@ -2023,6 +2048,7 @@
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
 
+            // Inicialización de las nuevas gráficas
             renderHistoricalChart();
             renderConsequencesChart();
             renderLugarHabitacionChart();
