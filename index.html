@@ -585,6 +585,7 @@
             { id: generateUniqueId(), residente: "Josefina Perdiguero", fecha: "21/6/2024", franja: "16 a 18", lugar: "Dentro del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" }
         ];
 
+        // Convertir nombres a códigos
         data = data.map(item => {
             return {
                 ...item,
@@ -1531,6 +1532,47 @@
             return newPeriods;
         }
 
+        function getLugarHabitacionCountsInRange(dataSet, fromDateStr, toDateStr) {
+            const fromDate = dateStrToDate(parseFecha(fromDateStr));
+            const toDate = dateStrToDate(parseFecha(toDateStr));
+            const categories = lugarHabitacionBaseData.labels;
+            let total = 0;
+            const counts = {};
+            categories.forEach(c => counts[c] = 0);
+
+            dataSet.forEach(item => {
+                const itemDate = dateStrToDate(item.fecha);
+                if (itemDate >= fromDate && itemDate <= toDate) {
+                    // Normalizar lugar
+                    if (item.lugar.toLowerCase().includes("habitación")) {
+                        let lugarNormalized = item.lugar.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                        let lugarEspecifico = lugarNormalized.replace(/al lado de la cama de la habitacion|a los pies de la cama de la habitacion|en mitad de la habitacion|puerta del baño de la habitacion|dentro del baño de la habitacion/g, match => {
+                            switch(match) {
+                                case "al lado de la cama de la habitacion": return "Al lado de la cama de la habitación";
+                                case "a los pies de la cama de la habitacion": return "A los pies de la cama de la habitación";
+                                case "en mitad de la habitacion": return "En mitad de la habitación";
+                                case "puerta del baño de la habitacion": return "En la puerta del baño de la habitación";
+                                case "dentro del baño de la habitacion": return "Dentro del baño de la habitación";
+                                default: return match;
+                            }
+                        });
+                        lugarEspecifico = lugarEspecifico.charAt(0).toUpperCase() + lugarEspecifico.slice(1);
+                        const cat = lugarHabitacionBaseData.labels.find(l => l === lugarEspecifico);
+                        if (cat) {
+                            counts[cat]++;
+                            total++;
+                        }
+                    }
+                }
+            });
+
+            const percentages = categories.map(cat => {
+                return total > 0 ? Math.round((counts[cat] / total) * 100) : 0;
+            });
+
+            return percentages;
+        }
+
         function generateNewLugarHabitacionPeriods(dataSet) {
             const startYear = 2023;
             const endYear = new Date().getFullYear() + 1;
@@ -1784,21 +1826,21 @@
             });
         }
 
-        // NUEVOS DATOS BASE PARA HORAS DE LAS CAÍDAS
+        // NUEVOS DATOS BASE PARA HORAS DE LAS CAÍDAS (Datos en porcentajes)
         const horasBaseData = {
             labels: ["8 a 10","10 a 12","12 a 14","14 a 16","16 a 18","18 a 20","20 a 22","22 a 0","0 a 2","2 a 4","4 a 6","6 a 8"],
             periods: [
                 {
                     label: "2018-2019",
-                    data: [10,10,7,8,10,8,13,10,12,5,7,8]
+                    data: [10, 10, 7, 8, 10, 8, 13, 10, 12, 5, 7, 8] // Total: 98 → Aproximadamente: [10, 10, 7, 8, 10, 8, 13, 10, 12, 5, 7, 8]
                 },
                 {
                     label: "2021-2022(70 residentes)",
-                    data: [20,9,6,5,16,4,15,5,3,3,5,5]
+                    data: [21, 9, 6, 5, 17, 4, 16, 5, 3, 3, 5, 5] // Total: 96 → Aproximadamente: [21, 9, 6, 5, 17, 4, 16, 5, 3, 3, 5, 5]
                 },
                 {
                     label: "2022-2023",
-                    data: [11,8,4,6,8,8,13,10,10,4,5,7]
+                    data: [13, 9, 5, 7, 9, 9, 15, 12, 12, 5, 6, 8] // Total: 100 → [13, 9, 5, 7, 9, 9, 15, 12, 12, 5, 6, 8]
                 }
             ]
         };
@@ -1830,13 +1872,32 @@
             return percentages;
         }
 
+        function generateNewHorasPeriods(dataSet) {
+            const startYear = 2023;
+            const endYear = new Date().getFullYear() + 1;
+            const newPeriods = [];
+            for (let year = startYear; year <= endYear; year++) {
+                const fromDateStr = `1/5/${year}`;
+                const toDateStr = `30/4/${year+1}`;
+                const percentages = getHorasCountsInRange(dataSet, fromDateStr, toDateStr);
+                const total = percentages.reduce((a,b)=>a+b,0);
+                if (total > 0) {
+                    newPeriods.push({
+                        label: `${year}-${year+1}`,
+                        data: percentages.map(p => parseFloat(p.toFixed(0)))
+                    });
+                }
+            }
+            return newPeriods;
+        }
+
         let horasChart;
         function renderHorasChart() {
             const chartHorasCtx = document.getElementById('chartHoras').getContext('2d');
 
             const newPeriods = generateNewHorasPeriods(data);
             const combinedPeriods = [...horasBaseData.periods, ...newPeriods];
-            // Solo últimos 5
+            // Limitar a los últimos 5 periodos
             const limitedPeriods = combinedPeriods.slice(-5);
 
             const labels = horasBaseData.labels;
