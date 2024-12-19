@@ -25,7 +25,7 @@
         .chart-container {
             margin: 20px 0;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
         }
         .chart-container canvas {
@@ -101,9 +101,7 @@
                 <div class="card-body">
                     <div class="chart-container">
                         <canvas id="chart"></canvas>
-                    </div>
-                    <div class="text-center">
-                        <button id="downloadChart" class="btn btn-secondary mt-3">Descargar Gráfica</button>
+                        <button class="btn btn-secondary mt-3 download-chart-button" data-chart="chart">Descargar Gráfica</button>
                     </div>
                 </div>
             </div>
@@ -334,37 +332,38 @@
                 </div>
             </div>
 
-            <!-- NUEVA GRÁFICA HISTÓRICA -->
+            <!-- NUEVA SECCIÓN DE GRÁFICAS CON BOTONES DE CAMBIO -->
             <div class="card">
                 <div class="card-header">
-                    <h5>Caídas en años anteriores (Histórico + Actualización)</h5>
+                    <h5>Gráficas Adicionales</h5>
                 </div>
                 <div class="card-body">
-                    <div class="chart-container">
+                    <div class="chart-selector text-center mb-3">
+                        <button class="btn btn-outline-primary me-2" id="btnHistorico">Caídas Históricas</button>
+                        <button class="btn btn-outline-primary me-2" id="btnConsecuenciasHistoricas">Consecuencias Históricas</button>
+                        <button class="btn btn-outline-primary me-2" id="btnLugarHabitacionHistorico">Lugar de las Caídas en la Habitación</button>
+                        <button class="btn btn-outline-primary me-2" id="btnHorasHistorico">Horas de las Caídas</button>
+                    </div>
+                    <div id="chartHistoricoContainer" class="chart-container">
                         <canvas id="chartHistorico"></canvas>
+                        <button class="btn btn-secondary mt-3 download-chart-button" data-chart="chartHistorico">Descargar Gráfica Histórica</button>
                     </div>
-                    <div class="text-center">
-                        <button id="updateHistoricalChart" class="btn btn-secondary mt-3">Actualizar Gráfica Histórica</button>
-                    </div>
-                </div>
-            </div>
-            <!-- FIN NUEVA GRÁFICA HISTÓRICA -->
-
-            <!-- NUEVO GRÁFICO DE CONSECUENCIAS HISTÓRICAS -->
-            <div class="card">
-                <div class="card-header">
-                    <h5>Consecuencias de las caídas (En % del total de caídas) Histórico + Actualización</h5>
-                </div>
-                <div class="card-body">
-                    <div class="chart-container">
+                    <div id="chartConsecuenciasHistoricoContainer" class="chart-container" style="display: none;">
                         <canvas id="chartConsecuenciasHistorico"></canvas>
+                        <button class="btn btn-secondary mt-3 download-chart-button" data-chart="chartConsecuenciasHistorico">Descargar Gráfica de Consecuencias</button>
                     </div>
-                    <div class="text-center">
-                        <button id="updateConsequencesChart" class="btn btn-secondary mt-3">Actualizar Gráfica de Consecuencias</button>
+                    <!-- NUEVAS GRÁFICAS -->
+                    <div id="chartLugarHabitacionContainer" class="chart-container" style="display: none;">
+                        <canvas id="chartLugarHabitacion"></canvas>
+                        <button class="btn btn-secondary mt-3 download-chart-button" data-chart="chartLugarHabitacion">Descargar Gráfica Lugar Habitación</button>
+                    </div>
+                    <div id="chartHorasContainer" class="chart-container" style="display: none;">
+                        <canvas id="chartHoras"></canvas>
+                        <button class="btn btn-secondary mt-3 download-chart-button" data-chart="chartHoras">Descargar Gráfica Horas Caídas</button>
                     </div>
                 </div>
             </div>
-            <!-- FIN NUEVO GRÁFICO DE CONSECUENCIAS HISTÓRICAS -->
+            <!-- FIN NUEVA SECCIÓN DE GRÁFICAS CON BOTONES DE CAMBIO -->
 
         </main>
     </div>
@@ -949,12 +948,12 @@
 
                 const percentage1 = allLabels.map(label => {
                     const count = map1.get(label) || 0;
-                    return total1 > 0 ? ((count / total1) * 100).toFixed(1) : 0;
+                    return total1 > 0 ? Math.round((count / total1) * 100) : 0;
                 });
 
                 const percentage2 = allLabels.map(label => {
                     const count = map2.get(label) || 0;
-                    return total2 > 0 ? ((count / total2) * 100).toFixed(1) : 0;
+                    return total2 > 0 ? Math.round((count / total2) * 100) : 0;
                 });
 
                 labels1 = allLabels;
@@ -1391,181 +1390,23 @@
             }
         }
 
-        function downloadChartAsImage() {
-            try {
-                const link = document.createElement('a');
-                link.href = chart.toBase64Image('image/png', 1);
-                link.download = `grafica_${currentChartType}_${new Date().toISOString().slice(0,10)}.png`;
-                link.click();
-                alert('La gráfica ha sido descargada exitosamente en formato PNG.');
-            } catch (error) {
-                console.error('Error al descargar la gráfica:', error);
-                alert('Hubo un error al intentar descargar la gráfica. Por favor, inténtalo de nuevo.');
-            }
-        }
-
-        document.getElementById('downloadChart').addEventListener('click', downloadChartAsImage);
-
-        const importExcelBtn = document.getElementById('importExcelBtn');
-        const importExcelInput = document.getElementById('importExcelInput');
-
-        importExcelBtn.addEventListener('click', () => {
-            importExcelInput.click();
-        });
-
-        importExcelInput.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const dataBuffer = e.target.result;
-                const dataView = new Uint8Array(dataBuffer);
-                const workbook = XLSX.read(dataView, {type: 'array', raw: false, cellDates: false});
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                const jsonData = XLSX.utils.sheet_to_json(worksheet, {defval: "", raw: false, cellDates: false});
-                importDataFromExcel(jsonData);
-            };
-            reader.onerror = function(ex) {
-                console.error(ex);
-                alert('Hubo un error al leer el archivo.');
-            };
-            reader.readAsArrayBuffer(file);
-            importExcelInput.value = '';
-        });
-
-        async function importDataFromExcel(jsonData) {
-            if (jsonData.length === 0) {
-                alert('El archivo Excel está vacío o no contiene datos válidos.');
-                return;
-            }
-
-            const expectedColumns = ["Nombre del residente", "Fecha", "Franja horaria", "Lugar", "Consecuencias", "Sensor de Movimiento"];
-            const fileColumns = Object.keys(jsonData[0]);
-            const missingColumns = expectedColumns.filter(col => !fileColumns.includes(col));
-
-            if (missingColumns.length > 0) {
-                alert(`Faltan las siguientes columnas en el archivo Excel: ${missingColumns.join(", ")}`);
-                return;
-            }
-
-            let recordsAdded = 0;
-            let recordsSkipped = 0;
-            let errorMessages = [];
-            let newRecords = [];
-
-            jsonData.forEach((row, index) => {
-                try {
-                    let residente = row["Nombre del residente"].toString().trim();
-                    let fechaOriginal = row["Fecha"].toString().trim();
-                    let franja = row["Franja horaria"].toString().trim();
-                    let lugar = row["Lugar"].toString().trim();
-                    let consecuencias = row["Consecuencias"].toString().trim();
-                    let sensor = row["Sensor de Movimiento"].toString().trim();
-
-                    if (!residente || !fechaOriginal || !franja || !lugar || !consecuencias || !sensor) {
-                        recordsSkipped++;
-                        errorMessages.push(`Fila ${index + 2}: Campos obligatorios faltantes.`);
-                        return;
-                    }
-
-                    const fechaFormateada = parseFecha(fechaOriginal);
-                    if (!fechaFormateada) {
-                        recordsSkipped++;
-                        errorMessages.push(`Fila ${index + 2}: Fecha inválida.`);
-                        return;
-                    }
-
-                    residente = convertNameToCode(residente);
-
-                    const duplicate = data.find(item => item.residente === residente && item.fecha === fechaFormateada && item.franja === franja && item.lugar === lugar);
-                    if (duplicate) {
-                        recordsSkipped++;
-                        errorMessages.push(`Fila ${index + 2}: Registro duplicado.`);
-                        return;
-                    }
-
-                    const nuevoRegistro = {
-                        id: generateUniqueId(),
-                        residente,
-                        fecha: fechaFormateada,
-                        franja,
-                        lugar,
-                        consecuencias,
-                        sensor
-                    };
-
-                    data.push(nuevoRegistro);
-                    actionStack.push({ action: 'add', record: nuevoRegistro });
-                    newRecords.push(nuevoRegistro);
-                    recordsAdded++;
-                } catch (error) {
-                    recordsSkipped++;
-                    errorMessages.push(`Fila ${index + 2}: Error al procesar el registro.`);
-                    console.error(`Error en la fila ${index + 2}:`, error);
+        document.querySelectorAll('.download-chart-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const chartId = this.getAttribute('data-chart');
+                const chart = Chart.getChart(chartId);
+                if (chart) {
+                    const link = document.createElement('a');
+                    link.href = chart.toBase64Image('image/png', 1);
+                    link.download = `grafica_${chartId}_${new Date().toISOString().slice(0,10)}.png`;
+                    link.click();
+                    alert('La gráfica ha sido descargada exitosamente en formato PNG.');
+                } else {
+                    alert('No se pudo encontrar la gráfica para descargar.');
                 }
             });
+        });
 
-            actualizarFiltrosResidentes();
-            filterData();
-            updateChart();
-            updateButtonStates();
-
-            actualizarDatalistResidentes();
-
-            await addMultipleRecordsToAPI(newRecords);
-
-            let message = `Importación completada.\nRegistros añadidos: ${recordsAdded}\nRegistros omitidos: ${recordsSkipped}`;
-            if (errorMessages.length > 0) {
-                message += `\n\nErrores:\n${errorMessages.join("\n")}`;
-            }
-            alert(message);
-        }
-
-        function actualizarFiltrosResidentes() {
-            const uniqueResidentes = [...new Set(data.map(d => d.residente))].sort();
-            filterResidenteSelect.innerHTML = `<option value="">Todos</option>`;
-            uniqueResidentes.forEach(r => {
-                filterResidenteSelect.innerHTML += `<option value="${r}">${r}</option>`;
-            });
-        }
-
-        function setDefaultDateFilters() {
-            const today = new Date();
-            const currentYear = today.getFullYear();
-            const mayFirst = new Date(currentYear, 4, 1);
-
-            if (today < mayFirst) {
-                mayFirst.setFullYear(currentYear - 1);
-            }
-
-            const formatDate = (date) => {
-                const yyyy = date.getFullYear();
-                const mm = String(date.getMonth() + 1).padStart(2, '0');
-                const dd = String(date.getDate()).padStart(2, '0');
-                return `${yyyy}-${mm}-${dd}`;
-            };
-
-            filterFromDate.value = formatDate(mayFirst);
-            filterToDate.value = formatDate(today);
-            filterFromDateCompare.value = "";
-            filterToDateCompare.value = "";
-        }
-
-        function downloadChartAsImage() {
-            try {
-                const link = document.createElement('a');
-                link.href = chart.toBase64Image('image/png', 1);
-                link.download = `grafica_${currentChartType}_${new Date().toISOString().slice(0,10)}.png`;
-                link.click();
-                alert('La gráfica ha sido descargada exitosamente en formato PNG.');
-            } catch (error) {
-                console.error('Error al descargar la gráfica:', error);
-                alert('Hubo un error al intentar descargar la gráfica. Por favor, inténtalo de nuevo.');
-            }
-        }
-
-        // NUEVAS FUNCIONES Y VARIABLES PARA LA GRÁFICA HISTÓRICA
+        // Datos originales de caídas históricas y consecuencias
         const historicalData = [
             { label: "2014-2015", value: 168 },
             { label: "2015-2016", value: 167 },
@@ -1598,7 +1439,6 @@
                 const fromDateStr = `1/5/${year}`;
                 const toDateStr = `30/4/${year+1}`;
                 const fallsCount = sumFallsInRange(dataSet, fromDateStr, toDateStr);
-                // Agregar solo si hay datos
                 if (fallsCount > 0) {
                     newPeriods.push({ label: `${year}-${year+1}`, value: fallsCount });
                 }
@@ -1607,8 +1447,91 @@
             return newPeriods;
         }
 
-        let historicalChart; 
+        // Consecuencias históricas base
+        const consequencesBaseData = {
+            labels: ["Sin consecuencias","Contusión","Herida","TCE","Fractura cadera","Fractura"],
+            periods: [
+                {
+                    label: "2014-2015",
+                    data: [96,3,1,0,0,0]
+                },
+                {
+                    label: "2015-2016",
+                    data: [68,17,8,1,1,0]
+                },
+                {
+                    label: "2016-2017",
+                    data: [66,20,11,1,1,0]
+                },
+                {
+                    label: "2017-2018",
+                    data: [66,22,14,0,0,1]
+                },
+                {
+                    label: "2018-2019",
+                    data: [78,8,10,2,2,0]
+                },
+                {
+                    label: "2021-2022(70 residentes)",
+                    data: [73,15,3,7,2,0]
+                },
+                {
+                    label: "2022-2023",
+                    data: [74,11,6,5,0,0]
+                }
+            ]
+        };
 
+        function getConsequencesCountsInRange(dataSet, fromDateStr, toDateStr) {
+            const fromDate = dateStrToDate(parseFecha(fromDateStr));
+            const toDate = dateStrToDate(parseFecha(toDateStr));
+            let total = 0;
+            const counts = {
+                "Sin consecuencias": 0,
+                "Contusión": 0,
+                "Herida": 0,
+                "TCE": 0,
+                "Fractura cadera": 0,
+                "Fractura": 0
+            };
+
+            dataSet.forEach(item => {
+                const itemDate = dateStrToDate(item.fecha);
+                if (itemDate >= fromDate && itemDate <= toDate) {
+                    total++;
+                    if (counts[item.consecuencias] !== undefined) {
+                        counts[item.consecuencias]++;
+                    }
+                }
+            });
+
+            const percentages = Object.keys(counts).map(key => {
+                return total > 0 ? Math.round((counts[key] / total) * 100) : 0;
+            });
+
+            return percentages;
+        }
+
+        function generateNewConsequencesPeriods(dataSet) {
+            const startYear = 2023;
+            const endYear = new Date().getFullYear() + 1;
+            const newPeriods = [];
+            for (let year = startYear; year <= endYear; year++) {
+                const fromDateStr = `1/5/${year}`;
+                const toDateStr = `30/4/${year+1}`;
+                const percentages = getConsequencesCountsInRange(dataSet, fromDateStr, toDateStr);
+                const total = percentages.reduce((a,b)=>a+b,0);
+                if (total > 0) {
+                    newPeriods.push({
+                        label: `${year}-${year+1}`,
+                        data: percentages.map(p => parseFloat(p.toFixed(0)))
+                    });
+                }
+            }
+            return newPeriods;
+        }
+
+        let historicalChart; 
         function renderHistoricalChart() {
             const chartHistoricoCtx = document.getElementById('chartHistorico').getContext('2d');
 
@@ -1618,9 +1541,11 @@
             });
 
             const combinedData = [...historicalData, ...filteredNewPeriods];
+            // Solo 5 periodos: tomamos los últimos 5
+            const lastFive = combinedData.slice(-5);
 
-            const labels = combinedData.map(d => d.label);
-            const values = combinedData.map(d => d.value);
+            const labels = lastFive.map(d => d.label);
+            const values = lastFive.map(d => d.value);
 
             const backgroundColors = assignColors(labels); 
             const borderColors = backgroundColors.map(c => c.replace('0.6','1'));
@@ -1674,121 +1599,25 @@
             });
         }
 
-        document.getElementById('updateHistoricalChart').addEventListener('click', function() {
-            renderHistoricalChart();
-            alert('Gráfica histórica actualizada');
-        });
-
-        // NUEVO GRÁFICO DE CONSECUENCIAS (HISTÓRICO + ACTUALIZACIÓN)
-        const consequencesBaseData = {
-            labels: ["Sin consecuencias","Contusión","Herida","TCE","Fractura cadera","Fractura"],
-            periods: [
-                {
-                    label: "2014-2015",
-                    data: [96,3,1,0,0,0]
-                },
-                {
-                    label: "2015-2016",
-                    data: [68,17,8,1,1,0]
-                },
-                {
-                    label: "2016-2017",
-                    data: [66,20,11,1,1,0]
-                },
-                {
-                    label: "2017-2018",
-                    data: [66,22,14,0,0,1]
-                },
-                {
-                    label: "2018-2019",
-                    data: [78,15,11,3,2,1]
-                },
-                {
-                    label: "2021-2022(70 residentes)",
-                    data: [78,11,10,1,2,0]
-                },
-                {
-                    label: "2022-2023",
-                    data: [78,11,10,2,0,0]
-                }
-            ]
-        };
-
-        function getConsequencesCountsInRange(dataSet, fromDateStr, toDateStr) {
-            const fromDate = dateStrToDate(parseFecha(fromDateStr));
-            const toDate = dateStrToDate(parseFecha(toDateStr));
-            let total = 0;
-            const counts = {
-                "Sin consecuencias": 0,
-                "Contusión": 0,
-                "Herida": 0,
-                "TCE": 0,
-                "Fractura cadera": 0,
-                "Fractura": 0
-            };
-
-            dataSet.forEach(item => {
-                const itemDate = dateStrToDate(item.fecha);
-                if (itemDate >= fromDate && itemDate <= toDate) {
-                    total++;
-                    if (counts[item.consecuencias] !== undefined) {
-                        counts[item.consecuencias]++;
-                    }
-                }
-            });
-
-            const percentages = Object.keys(counts).map(key => {
-                return total > 0 ? (counts[key] / total * 100) : 0;
-            });
-
-            return percentages;
-        }
-
-        function generateNewConsequencesPeriods(dataSet) {
-            const startYear = 2023;
-            const endYear = new Date().getFullYear() + 1;
-            const newPeriods = [];
-            for (let year = startYear; year <= endYear; year++) {
-                const fromDateStr = `1/5/${year}`;
-                const toDateStr = `30/4/${year+1}`;
-                const percentages = getConsequencesCountsInRange(dataSet, fromDateStr, toDateStr);
-                const total = percentages.reduce((a,b)=>a+b,0);
-                // Agregar solo si hay datos
-                if (total > 0) {
-                    newPeriods.push({
-                        label: `${year}-${year+1}`,
-                        data: percentages.map(p => parseFloat(p.toFixed(1)))
-                    });
-                }
-            }
-            return newPeriods;
-        }
-
         let consequencesChart;
-
         function renderConsequencesChart() {
             const chartConsecuenciasCtx = document.getElementById('chartConsecuenciasHistorico').getContext('2d');
 
             const newPeriods = generateNewConsequencesPeriods(data);
-            const combinedPeriods = [...consequencesBaseData.periods];
-
-            // Añadimos sólo los períodos con datos
-            newPeriods.forEach(np => {
-                if (!combinedPeriods.some(cp => cp.label === np.label)) {
-                    combinedPeriods.push(np);
-                }
-            });
+            const combinedPeriods = [...consequencesBaseData.periods, ...newPeriods];
+            // Limitar a los últimos 5 periodos
+            const limitedPeriods = combinedPeriods.slice(-5);
 
             const labels = consequencesBaseData.labels;
-            const allPeriodLabels = combinedPeriods.map(p => p.label);
+            const allPeriodLabels = limitedPeriods.map(p => p.label);
             const palette = assignColors(allPeriodLabels);
 
-            const datasets = combinedPeriods.map((period, index) => {
+            const datasets = limitedPeriods.map((period, index) => {
                 const bgColor = palette[index];
                 const borderColor = bgColor.replace('0.6','1');
                 return {
                     label: period.label,
-                    data: period.data.map(d => parseFloat(d.toFixed(1))),
+                    data: period.data.map(d => parseFloat(d.toFixed(0))),
                     backgroundColor: bgColor,
                     borderColor: borderColor,
                     borderWidth: 1
@@ -1833,7 +1662,7 @@
                             beginAtZero: true,
                             title: {
                                 display: true,
-                                text: 'Valores'
+                                text: 'Porcentaje (%)'
                             }
                         }
                     }
@@ -1842,14 +1671,369 @@
             });
         }
 
-        document.getElementById('updateConsequencesChart').addEventListener('click', function() {
-            renderConsequencesChart();
-            alert('Gráfica de consecuencias actualizada');
+        // NUEVOS DATOS BASE PARA LUGAR HABITACIÓN
+        const lugarHabitacionBaseData = {
+            labels: [
+                "Al lado de la cama de la habitación",
+                "En mitad de la habitación",
+                "A los pies de la cama de la habitación",
+                "En la puerta del baño de la habitación",
+                "Dentro del baño de la habitación"
+            ],
+            periods: [
+                {
+                    label: "2018-2019",
+                    data: [30,10,5,6,15]
+                },
+                {
+                    label: "2021-2022(70 residentes)",
+                    data: [37,12,8,5,11]
+                },
+                {
+                    label: "2022-2023",
+                    data: [29,12,5,6,12]
+                }
+            ]
+        };
+
+        function getLugarHabitacionCountsInRange(dataSet, fromDateStr, toDateStr) {
+            const fromDate = dateStrToDate(parseFecha(fromDateStr));
+            const toDate = dateStrToDate(parseFecha(toDateStr));
+            const categories = lugarHabitacionBaseData.labels;
+            let total = 0;
+            const counts = {};
+            categories.forEach(c => counts[c] = 0);
+
+            dataSet.forEach(item => {
+                const itemDate = dateStrToDate(item.fecha);
+                if (itemDate >= fromDate && itemDate <= toDate) {
+                    // Normalizar lugar
+                    if (item.lugar.toLowerCase().includes("habitación")) {
+                        let lugarNormalized = item.lugar.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                        let lugarEspecifico = lugarNormalized.replace(/al lado de la cama de la habitacion|a los pies de la cama de la habitacion|en mitad de la habitacion|puerta del baño de la habitacion|dentro del baño de la habitacion/g, match => {
+                            switch(match) {
+                                case "al lado de la cama de la habitacion": return "Al lado de la cama de la habitación";
+                                case "a los pies de la cama de la habitacion": return "A los pies de la cama de la habitación";
+                                case "en mitad de la habitacion": return "En mitad de la habitación";
+                                case "puerta del baño de la habitacion": return "En la puerta del baño de la habitación";
+                                case "dentro del baño de la habitacion": return "Dentro del baño de la habitación";
+                                default: return match;
+                            }
+                        });
+                        // Contabilizar si corresponde a una categoría
+                        const cat = lugarHabitacionBaseData.labels.find(l => l === lugarEspecifico);
+                        if (cat) {
+                            counts[cat]++;
+                            total++;
+                        }
+                    }
+                }
+            });
+
+            const percentages = categories.map(cat => {
+                return total > 0 ? Math.round((counts[cat] / total) * 100) : 0;
+            });
+
+            return percentages;
+        }
+
+        function generateNewLugarHabitacionPeriods(dataSet) {
+            const startYear = 2023;
+            const endYear = new Date().getFullYear() + 1;
+            const newPeriods = [];
+            for (let year = startYear; year <= endYear; year++) {
+                const fromDateStr = `1/5/${year}`;
+                const toDateStr = `30/4/${year+1}`;
+                const percentages = getLugarHabitacionCountsInRange(dataSet, fromDateStr, toDateStr);
+                const total = percentages.reduce((a,b)=>a+b,0);
+                if (total > 0) {
+                    newPeriods.push({
+                        label: `${year}-${year+1}`,
+                        data: percentages.map(p => parseFloat(p.toFixed(0)))
+                    });
+                }
+            }
+            return newPeriods;
+        }
+
+        let lugarHabitacionChart;
+        function renderLugarHabitacionChart() {
+            const chartLugarHabitacionCtx = document.getElementById('chartLugarHabitacion').getContext('2d');
+
+            const newPeriods = generateNewLugarHabitacionPeriods(data);
+            const combinedPeriods = [...lugarHabitacionBaseData.periods, ...newPeriods];
+            // Limitamos a últimos 5
+            const limitedPeriods = combinedPeriods.slice(-5);
+
+            const labels = lugarHabitacionBaseData.labels;
+            const allPeriodLabels = limitedPeriods.map(p => p.label);
+            const palette = assignColors(allPeriodLabels);
+
+            const datasets = limitedPeriods.map((period, index) => {
+                const bgColor = palette[index];
+                const borderColor = bgColor.replace('0.6','1');
+                return {
+                    label: period.label,
+                    data: period.data,
+                    backgroundColor: bgColor,
+                    borderColor: borderColor,
+                    borderWidth: 1
+                };
+            });
+
+            if (lugarHabitacionChart) {
+                lugarHabitacionChart.destroy();
+            }
+
+            lugarHabitacionChart = new Chart(chartLugarHabitacionCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true
+                        },
+                        title: {
+                            display: true,
+                            text: '% Lugar de las caídas en la habitación',
+                            padding: { top: 30, bottom: 10 }
+                        },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'end',
+                            formatter: function(value) {
+                                return value;
+                            },
+                            font: {
+                                weight: 'bold'
+                            },
+                            color: '#000'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Values'
+                            }
+                        }
+                    }
+                },
+                plugins: [ChartDataLabels, whiteBackgroundPlugin]
+            });
+        }
+
+        // NUEVOS DATOS BASE PARA HORAS DE LAS CAÍDAS
+        const horasBaseData = {
+            labels: ["8 a 10","10 a 12","12 a 14","14 a 16","16 a 18","18 a 20","20 a 22","22 a 0","0 a 2","2 a 4","4 a 6","6 a 8"],
+            periods: [
+                {
+                    label: "2018-2019",
+                    data: [10,10,7,8,10,8,13,10,12,5,7,8]
+                },
+                {
+                    label: "2021-2022(70 residentes)",
+                    data: [20,9,6,5,16,4,15,5,3,3,5,5]
+                },
+                {
+                    label: "2022-2023",
+                    data: [11,8,4,6,8,8,13,10,10,4,5,7]
+                }
+            ]
+        };
+
+        function getHorasCountsInRange(dataSet, fromDateStr, toDateStr) {
+            const fromDate = dateStrToDate(parseFecha(fromDateStr));
+            const toDate = dateStrToDate(parseFecha(toDateStr));
+            const categories = horasBaseData.labels;
+            let total = 0;
+            const counts = {};
+            categories.forEach(c => counts[c] = 0);
+
+            dataSet.forEach(item => {
+                const itemDate = dateStrToDate(item.fecha);
+                if (itemDate >= fromDate && itemDate <= toDate) {
+                    // item.franja da la franja horaria directamente
+                    const f = categories.find(cat => cat === item.franja);
+                    if (f) {
+                        counts[f]++;
+                        total++;
+                    }
+                }
+            });
+
+            const percentages = categories.map(cat => {
+                return total > 0 ? Math.round((counts[cat] / total) * 100) : 0;
+            });
+
+            return percentages;
+        }
+
+        function generateNewHorasPeriods(dataSet) {
+            const startYear = 2023;
+            const endYear = new Date().getFullYear() + 1;
+            const newPeriods = [];
+            for (let year = startYear; year <= endYear; year++) {
+                const fromDateStr = `1/5/${year}`;
+                const toDateStr = `30/4/${year+1}`;
+                const percentages = getHorasCountsInRange(dataSet, fromDateStr, toDateStr);
+                const total = percentages.reduce((a,b)=>a+b,0);
+                if (total > 0) {
+                    newPeriods.push({
+                        label: `${year}-${year+1}`,
+                        data: percentages.map(p => parseFloat(p.toFixed(0)))
+                    });
+                }
+            }
+            return newPeriods;
+        }
+
+        let horasChart;
+        function renderHorasChart() {
+            const chartHorasCtx = document.getElementById('chartHoras').getContext('2d');
+
+            const newPeriods = generateNewHorasPeriods(data);
+            const combinedPeriods = [...horasBaseData.periods, ...newPeriods];
+            // Solo últimos 5
+            const limitedPeriods = combinedPeriods.slice(-5);
+
+            const labels = horasBaseData.labels;
+            const allPeriodLabels = limitedPeriods.map(p => p.label);
+            const palette = assignColors(allPeriodLabels);
+
+            const datasets = limitedPeriods.map((period, index) => {
+                const bgColor = palette[index];
+                const borderColor = bgColor.replace('0.6','1');
+                return {
+                    label: period.label,
+                    data: period.data,
+                    backgroundColor: bgColor,
+                    borderColor: borderColor,
+                    borderWidth: 1
+                };
+            });
+
+            if (horasChart) {
+                horasChart.destroy();
+            }
+
+            horasChart = new Chart(chartHorasCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true
+                        },
+                        title: {
+                            display: true,
+                            text: '(%) Horas de las caídas',
+                            padding: { top: 30, bottom: 10 }
+                        },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'end',
+                            formatter: function(value) {
+                                return value;
+                            },
+                            font: {
+                                weight: 'bold'
+                            },
+                            color: '#000'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Values'
+                            }
+                        }
+                    }
+                },
+                plugins: [ChartDataLabels, whiteBackgroundPlugin]
+            });
+        }
+
+        document.getElementById('btnHistorico').addEventListener('click', function() {
+            document.getElementById('chartHistoricoContainer').style.display = 'block';
+            document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'none';
+            document.getElementById('chartLugarHabitacionContainer').style.display = 'none';
+            document.getElementById('chartHorasContainer').style.display = 'none';
+            setActiveChartSection(this);
         });
 
-        const originalWindowOnload = window.onload;
-        window.onload = async function() {
-            if (originalWindowOnload) await originalWindowOnload();
+        document.getElementById('btnConsecuenciasHistoricas').addEventListener('click', function() {
+            document.getElementById('chartHistoricoContainer').style.display = 'none';
+            document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'block';
+            document.getElementById('chartLugarHabitacionContainer').style.display = 'none';
+            document.getElementById('chartHorasContainer').style.display = 'none';
+            setActiveChartSection(this);
+        });
+
+        document.getElementById('btnLugarHabitacionHistorico').addEventListener('click', function() {
+            document.getElementById('chartHistoricoContainer').style.display = 'none';
+            document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'none';
+            document.getElementById('chartLugarHabitacionContainer').style.display = 'block';
+            document.getElementById('chartHorasContainer').style.display = 'none';
+            setActiveChartSection(this);
+        });
+
+        document.getElementById('btnHorasHistorico').addEventListener('click', function() {
+            document.getElementById('chartHistoricoContainer').style.display = 'none';
+            document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'none';
+            document.getElementById('chartLugarHabitacionContainer').style.display = 'none';
+            document.getElementById('chartHorasContainer').style.display = 'block';
+            setActiveChartSection(this);
+        });
+
+        function setActiveChartSection(activeButton) {
+            const buttons = document.querySelectorAll('.chart-selector .btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            activeButton.classList.add('active');
+        }
+
+        function initializeChartSections() {
+            document.getElementById('chartHistoricoContainer').style.display = 'block';
+            document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'none';
+            document.getElementById('chartLugarHabitacionContainer').style.display = 'none';
+            document.getElementById('chartHorasContainer').style.display = 'none';
+            setActiveChartSection(document.getElementById('btnHistorico'));
+        }
+
+        function setDefaultDateFilters() {
+            const today = new Date();
+            const currentYear = today.getFullYear();
+            const mayFirst = new Date(currentYear, 4, 1);
+
+            if (today < mayFirst) {
+                mayFirst.setFullYear(currentYear - 1);
+            }
+
+            const formatDate = (date) => {
+                const yyyy = date.getFullYear();
+                const mm = String(date.getMonth() + 1).padStart(2, '0');
+                const dd = String(date.getDate()).padStart(2, '0');
+                return `${yyyy}-${mm}-${dd}`;
+            };
+
+            filterFromDate.value = formatDate(mayFirst);
+            filterToDate.value = formatDate(today);
+            filterFromDateCompare.value = "";
+            filterToDateCompare.value = "";
+        }
+
+        window.addEventListener('load', async function() {
             await fetchRemoteData();
             initializeFilterSelects();
             setDefaultDateFilters();
@@ -1864,9 +2048,13 @@
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
 
+            // Inicialización de las nuevas gráficas
             renderHistoricalChart();
             renderConsequencesChart();
-        };
+            renderLugarHabitacionChart();
+            renderHorasChart();
+            initializeChartSections();
+        });
     </script>
 </body>
 </html>
