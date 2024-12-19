@@ -816,7 +816,11 @@
                         }
                     });
                     lugarEspecifico = lugarEspecifico.charAt(0).toUpperCase() + lugarEspecifico.slice(1);
-                    lugarHabitacionCount[lugarEspecifico] = (lugarHabitacionCount[lugarEspecifico] || 0) + 1;
+                    // Contabilizar si corresponde a una categoría
+                    const cat = lugarHabitacionBaseData.labels.find(l => l === lugarEspecifico);
+                    if (cat) {
+                        lugarHabitacionCount[lugarEspecifico] = (lugarHabitacionCount[lugarEspecifico] || 0) + 1;
+                    }
                 }
             });
             let labels = Object.keys(lugarHabitacionCount).sort((a, b) => lugarHabitacionCount[b] - lugarHabitacionCount[a]);
@@ -1246,6 +1250,7 @@
                 renderTable(filteredData);
                 updateChart();
                 updateButtonStates();
+                actualizarDatalistResidentes();
                 alert('Todos los registros han sido eliminados.');
             }
         });
@@ -1406,7 +1411,7 @@
             });
         });
 
-        // Datos originales de caídas históricas y consecuencias
+        // Datos históricos actualizados incluyendo los periodos solicitados
         const historicalData = [
             { label: "2014-2015", value: 168 },
             { label: "2015-2016", value: 167 },
