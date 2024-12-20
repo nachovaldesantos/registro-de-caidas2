@@ -61,6 +61,20 @@
         .period-buttons .btn {
             margin-right: 10px;
         }
+        /* Animación para las gráficas adicionales */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .fade-in-up {
+            animation: fadeInUp 0.6s ease-out;
+        }
     </style>
 </head>
 <body>
@@ -346,24 +360,24 @@
                         <!-- Nuevo botón para la nueva gráfica -->
                         <button class="btn btn-outline-primary me-2" id="btnLugarGlobalHistorico">Lugar de las caídas (Global)</button>
                     </div>
-                    <div id="chartHistoricoContainer" class="chart-container">
+                    <div id="chartHistoricoContainer" class="chart-container fade-in-up">
                         <canvas id="chartHistorico"></canvas>
                         <button class="btn btn-secondary mt-3 download-chart-button" data-chart="chartHistorico">Descargar Gráfica Histórica</button>
                     </div>
-                    <div id="chartConsecuenciasHistoricoContainer" class="chart-container" style="display: none;">
+                    <div id="chartConsecuenciasHistoricoContainer" class="chart-container fade-in-up" style="display: none;">
                         <canvas id="chartConsecuenciasHistorico"></canvas>
                         <button class="btn btn-secondary mt-3 download-chart-button" data-chart="chartConsecuenciasHistorico">Descargar Gráfica de Consecuencias</button>
                     </div>
-                    <div id="chartLugarHabitacionContainer" class="chart-container" style="display: none;">
+                    <div id="chartLugarHabitacionContainer" class="chart-container fade-in-up" style="display: none;">
                         <canvas id="chartLugarHabitacion"></canvas>
                         <button class="btn btn-secondary mt-3 download-chart-button" data-chart="chartLugarHabitacion">Descargar Gráfica Lugar Habitación</button>
                     </div>
-                    <div id="chartHorasContainer" class="chart-container" style="display: none;">
+                    <div id="chartHorasContainer" class="chart-container fade-in-up" style="display: none;">
                         <canvas id="chartHoras"></canvas>
                         <button class="btn btn-secondary mt-3 download-chart-button" data-chart="chartHoras">Descargar Gráfica Horas Caídas</button>
                     </div>
                     <!-- Nueva gráfica Lugar Global -->
-                    <div id="chartLugarGlobalContainer" class="chart-container" style="display: none;">
+                    <div id="chartLugarGlobalContainer" class="chart-container fade-in-up" style="display: none;">
                         <canvas id="chartLugarGlobal"></canvas>
                         <button class="btn btn-secondary mt-3 download-chart-button" data-chart="chartLugarGlobal">Descargar Gráfica Lugar Global</button>
                     </div>
@@ -1400,10 +1414,10 @@
         document.querySelectorAll('.download-chart-button').forEach(button => {
             button.addEventListener('click', function() {
                 const chartId = this.getAttribute('data-chart');
-                const chart = Chart.getChart(chartId);
-                if (chart) {
+                const chartInstance = Chart.getChart(chartId);
+                if (chartInstance) {
                     const link = document.createElement('a');
-                    link.href = chart.toBase64Image('image/png', 1);
+                    link.href = chartInstance.toBase64Image('image/png', 1);
                     link.download = `grafica_${chartId}_${new Date().toISOString().slice(0,10)}.png`;
                     link.click();
                     alert('La gráfica ha sido descargada exitosamente en formato PNG.');
@@ -2136,58 +2150,6 @@
             });
         }
 
-        document.getElementById('btnHistorico').addEventListener('click', function() {
-            document.getElementById('chartHistoricoContainer').style.display = 'block';
-            document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'none';
-            document.getElementById('chartLugarHabitacionContainer').style.display = 'none';
-            document.getElementById('chartHorasContainer').style.display = 'none';
-            document.getElementById('chartLugarGlobalContainer').style.display = 'none';
-            setActiveChartSection(this);
-        });
-
-        document.getElementById('btnConsecuenciasHistoricas').addEventListener('click', function() {
-            document.getElementById('chartHistoricoContainer').style.display = 'none';
-            document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'block';
-            document.getElementById('chartLugarHabitacionContainer').style.display = 'none';
-            document.getElementById('chartHorasContainer').style.display = 'none';
-            document.getElementById('chartLugarGlobalContainer').style.display = 'none';
-            setActiveChartSection(this);
-        });
-
-        document.getElementById('btnLugarHabitacionHistorico').addEventListener('click', function() {
-            document.getElementById('chartHistoricoContainer').style.display = 'none';
-            document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'none';
-            document.getElementById('chartLugarHabitacionContainer').style.display = 'block';
-            document.getElementById('chartHorasContainer').style.display = 'none';
-            document.getElementById('chartLugarGlobalContainer').style.display = 'none';
-            setActiveChartSection(this);
-        });
-
-        document.getElementById('btnHorasHistorico').addEventListener('click', function() {
-            document.getElementById('chartHistoricoContainer').style.display = 'none';
-            document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'none';
-            document.getElementById('chartLugarHabitacionContainer').style.display = 'none';
-            document.getElementById('chartHorasContainer').style.display = 'block';
-            document.getElementById('chartLugarGlobalContainer').style.display = 'none';
-            setActiveChartSection(this);
-        });
-
-        // Nuevo botón para la gráfica global
-        document.getElementById('btnLugarGlobalHistorico').addEventListener('click', function() {
-            document.getElementById('chartHistoricoContainer').style.display = 'none';
-            document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'none';
-            document.getElementById('chartLugarHabitacionContainer').style.display = 'none';
-            document.getElementById('chartHorasContainer').style.display = 'none';
-            document.getElementById('chartLugarGlobalContainer').style.display = 'block';
-            setActiveChartSection(this);
-        });
-
-        function setActiveChartSection(activeButton) {
-            const buttons = document.querySelectorAll('.chart-selector .btn');
-            buttons.forEach(btn => btn.classList.remove('active'));
-            activeButton.classList.add('active');
-        }
-
         function initializeChartSections() {
             document.getElementById('chartHistoricoContainer').style.display = 'block';
             document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'none';
@@ -2195,6 +2157,12 @@
             document.getElementById('chartHorasContainer').style.display = 'none';
             document.getElementById('chartLugarGlobalContainer').style.display = 'none';
             setActiveChartSection(document.getElementById('btnHistorico'));
+        }
+
+        function setActiveChartSection(activeButton) {
+            const buttons = document.querySelectorAll('.chart-selector .btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            activeButton.classList.add('active');
         }
 
         function setDefaultDateFilters() {
