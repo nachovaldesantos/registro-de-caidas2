@@ -616,41 +616,28 @@
         let currentChartType = 'franja';
         let filteredData = [...data]; 
 
-        
-function filterData() {
-    const selectedFranja = filterFranjaSelect.value;
-    const selectedLugar = filterLugarSelect.value;
-    const selectedConsecuencias = filterConsecuenciasSelect.value;
-    const selectedResidente = filterResidenteSelect.value;
-    const selectedSensor = filterSensorSelect.value;
-    const fromDateValue = filterFromDate.value;
-    const toDateValue = filterToDate.value;
+        function filterData() {
+            const selectedFranja = filterFranjaSelect.value;
+            const selectedLugar = filterLugarSelect.value;
+            const selectedConsecuencias = filterConsecuenciasSelect.value;
+            const selectedResidente = filterResidenteSelect.value;
+            const selectedSensor = filterSensorSelect.value;
+            const fromDateValue = filterFromDate.value;
+            const toDateValue = filterToDate.value;
 
-    // Si no hay filtros aplicados, usar todos los datos
-    if (!selectedFranja && !selectedLugar && !selectedConsecuencias && !selectedResidente && !selectedSensor && !fromDateValue && !toDateValue) {
-        filteredData = [...data];
-    } else {
-        filteredData = data.filter(item => {
-            let pass = (selectedFranja === "" || item.franja === selectedFranja) &&
-                       (selectedLugar === "" || item.lugar === selectedLugar) &&
-                       (selectedConsecuencias === "" || item.consecuencias === selectedConsecuencias) &&
-                       (selectedResidente === "" || item.residente === selectedResidente) &&
-                       (selectedSensor === "" || item.sensor === selectedSensor);
+            filteredData = data.filter(item => {
+                let pass = (selectedFranja === "" || item.franja === selectedFranja) &&
+                           (selectedLugar === "" || item.lugar === selectedLugar) &&
+                           (selectedConsecuencias === "" || item.consecuencias === selectedConsecuencias) &&
+                           (selectedResidente === "" || item.residente === selectedResidente) &&
+                           (selectedSensor === "" || item.sensor === selectedSensor);
 
-            if (fromDateValue && toDateValue) {
-                const itemDate = dateStrToDate(item.fecha);
-                const fromDateObj = new Date(fromDateValue);
-                const toDateObj = new Date(toDateValue);
-                if (itemDate < fromDateObj || itemDate > toDateObj) pass = false;
-            }
-
-            return pass;
-        });
-    }
-
-    renderTable(filteredData);
-    updateChart();
-}
+                if (fromDateValue && toDateValue) {
+                    const itemDate = dateStrToDate(item.fecha);
+                    const fromDateObj = new Date(fromDateValue);
+                    const toDateObj = new Date(toDateValue);
+                    if (itemDate < fromDateObj || itemDate > toDateObj) pass = false;
+                }
 
                 return pass;
             });
