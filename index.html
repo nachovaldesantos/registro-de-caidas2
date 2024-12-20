@@ -61,20 +61,6 @@
         .period-buttons .btn {
             margin-right: 10px;
         }
-        /* Animación para las gráficas adicionales */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        .fade-in-up {
-            animation: fadeInUp 0.6s ease-out;
-        }
     </style>
 </head>
 <body>
@@ -225,7 +211,7 @@
                             <h6>Residentes con al menos una caída: <span id="distinctResidents">0</span></h6>
                         </div>
                         <div class="col-md-3">
-                            <h6>Promedio de Caídas Estimado para el Periodo: <span id="estimatedFalls">0</span></h6>
+                            <h6>Proyección anual (al ritmo actual): <span id="projectedFalls">0</span></h6>
                         </div>
                     </div>
                 </div>
@@ -361,7 +347,7 @@
                         <button class="btn btn-outline-primary me-2" id="btnLugarHabitacionHistorico">Lugar de las Caídas en la Habitación</button>
                         <button class="btn btn-outline-primary me-2" id="btnHorasHistorico">Horas de las Caídas</button>
                         <!-- Nuevo botón para la nueva gráfica -->
-                        <button class="btn btn-outline-primary me-2" id="btnLugarGlobalHistorico">Lugar de las Caídas (Global)</button>
+                        <button class="btn btn-outline-primary me-2" id="btnLugarGlobalHistorico">Lugar de las caídas (Global)</button>
                     </div>
                     <div id="chartHistoricoContainer" class="chart-container">
                         <canvas id="chartHistorico"></canvas>
@@ -631,7 +617,7 @@
         const totalFallsElement = document.getElementById('totalFalls');
         const visibleFallsElement = document.getElementById('visibleFalls');
         const distinctResidentsElement = document.getElementById('distinctResidents');
-        const estimatedFallsElement = document.getElementById('estimatedFalls'); // Nuevo elemento
+        const projectedFallsElement = document.getElementById('projectedFalls');
 
         const periodo1Btn = document.getElementById('periodo1Btn');
         const periodo2Btn = document.getElementById('periodo2Btn');
@@ -639,6 +625,7 @@
         let actionStack = [];
         let currentChartType = 'franja';
         let filteredData = [...data]; 
+        let baseStartDate; // Almacena la fecha del último 1 de mayo
 
         function filterData() {
             const selectedFranja = filterFranjaSelect.value;
@@ -828,7 +815,7 @@
         function getCaidasPorLugarHabitacion(dataSet) {
             const lugarHabitacionCount = {};
             dataSet.forEach(item => {
-                if (item.lugar.toLowerCase().includes("habitación")) {
+                if (item.lugar.toLowerCase().includes("habitación") || item.lugar.toLowerCase().includes("habitacion")) {
                     let lugarNormalized = item.lugar.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                     let lugarEspecifico = lugarNormalized.replace(/al lado de la cama de la habitacion|a los pies de la cama de la habitacion|en mitad de la habitacion|puerta del bano de la habitacion|dentro del bano de la habitacion/g, match => {
                         switch(match) {
@@ -841,10 +828,7 @@
                         }
                     });
                     lugarEspecifico = lugarEspecifico.charAt(0).toUpperCase() + lugarEspecifico.slice(1);
-                    const cat = lugarHabitacionBaseData.labels.find(l => l === lugarEspecifico);
-                    if (cat) {
-                        lugarHabitacionCount[cat]++;
-                    }
+                    lugarHabitacionCount[lugarEspecifico] = (lugarHabitacionCount[lugarEspecifico] || 0) + 1;
                 }
             });
             let labels = Object.keys(lugarHabitacionCount).sort((a, b) => lugarHabitacionCount[b] - lugarHabitacionCount[a]);
@@ -971,8 +955,8 @@
                     map2.set(label, chartData2.counts[index]);
                 });
 
-                const total1 = counts1.reduce((a,b) => parseFloat(a)+parseFloat(b),0);
-                const total2 = chartData2.counts.reduce((a,b) => parseFloat(a)+parseFloat(b),0);
+                const total1 = counts1.reduce((a,b) => a+b,0);
+                const total2 = chartData2.counts.reduce((a,b) => a+b,0);
 
                 const percentage1 = allLabels.map(label => {
                     const count = map1.get(label) || 0;
@@ -1082,31 +1066,16 @@
             const distinctResidents = new Set(fData.map(item => item.residente)).size;
             distinctResidentsElement.innerText = distinctResidents;
 
-            // Cálculo del promedio de caídas estimado
-            const estimatedFalls = calculateEstimatedFalls();
-            estimatedFallsElement.innerText = estimatedFalls;
-        }
-
-        function calculateEstimatedFalls() {
+            // Cálculo de la proyección anual de caídas
             const today = new Date();
-            const currentYear = today.getFullYear();
-            let mayFirst = new Date(currentYear, 4, 1); // Mayo es el mes 4 (0-indexed)
-            if (today < mayFirst) {
-                mayFirst.setFullYear(currentYear -1);
-            }
-
-            const fromDate = mayFirst;
-            const toDate = today;
-            const oneDay = 24 * 60 * 60 * 1000;
-            const daysPassed = Math.floor((toDate - fromDate) / oneDay) + 1; // +1 para incluir hoy
-
-            const totalFalls = data.filter(item => {
-                const itemDate = dateStrToDate(item.fecha);
-                return itemDate >= fromDate && itemDate <= toDate;
+            const fallsSinceMayFirst = data.filter(d => {
+                const dDate = dateStrToDate(d.fecha);
+                return dDate >= baseStartDate && dDate <= today;
             }).length;
 
-            const estimatedFalls = daysPassed > 0 ? Math.round((totalFalls / daysPassed) * 365) : 0;
-            return estimatedFalls;
+            const dayCount = Math.floor((today - baseStartDate)/(1000*60*60*24)) + 1; 
+            const projected = dayCount > 0 ? Math.round((fallsSinceMayFirst/dayCount)*365) : 0;
+            projectedFallsElement.innerText = projected;
         }
 
         filterFranjaSelect.addEventListener('change', filterData);
@@ -1134,7 +1103,7 @@
         function setPeriodo1() {
             const today = new Date();
             const currentYear = today.getFullYear();
-            let mayFirst = new Date(currentYear, 4, 1);
+            const mayFirst = new Date(currentYear, 4, 1);
 
             if (today < mayFirst) {
                 mayFirst.setFullYear(currentYear - 1);
@@ -1151,12 +1120,14 @@
             filterToDate.value = formatDate(today);
             filterFromDateCompare.value = "";
             filterToDateCompare.value = "";
+
+            baseStartDate = mayFirst; // Guardamos la fecha base (1 de mayo) para la proyección
         }
 
         function setPeriodo2() {
             const today = new Date();
             const currentYear = today.getFullYear();
-            let mayFirstCurrent = new Date(currentYear, 4, 1);
+            const mayFirstCurrent = new Date(currentYear, 4, 1);
 
             if (today < mayFirstCurrent) {
                 mayFirstCurrent.setFullYear(currentYear - 1);
@@ -1181,6 +1152,8 @@
             filterToDate.value = formatDate(toDate1);
             filterFromDateCompare.value = formatDate(fromDate2);
             filterToDateCompare.value = formatDate(toDate2);
+
+            baseStartDate = fromDate1; // Guardamos la nueva fecha base de mayo
         }
 
         function setActivePeriodoButton(activeButton) {
@@ -1447,10 +1420,10 @@
         document.querySelectorAll('.download-chart-button').forEach(button => {
             button.addEventListener('click', function() {
                 const chartId = this.getAttribute('data-chart');
-                const chartInstance = Chart.getChart(chartId);
-                if (chartInstance) {
+                const chart = Chart.getChart(chartId);
+                if (chart) {
                     const link = document.createElement('a');
-                    link.href = chartInstance.toBase64Image('image/png', 1);
+                    link.href = chart.toBase64Image('image/png', 1);
                     link.download = `grafica_${chartId}_${new Date().toISOString().slice(0,10)}.png`;
                     link.click();
                     alert('La gráfica ha sido descargada exitosamente en formato PNG.');
@@ -1670,7 +1643,6 @@
 
             const newPeriods = generateNewLugarHabitacionPeriods(data);
             const combinedPeriods = [...lugarHabitacionBaseData.periods, ...newPeriods];
-            // Limitar a los últimos 5 periodos
             const limitedPeriods = combinedPeriods.slice(-5);
 
             const labels = lugarHabitacionBaseData.labels;
@@ -1701,6 +1673,10 @@
                 },
                 options: {
                     responsive: true,
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutQuad'
+                    },
                     plugins: {
                         legend: {
                             display: true
@@ -1805,7 +1781,6 @@
 
             const newPeriods = generateNewHorasPeriods(data);
             const combinedPeriods = [...horasBaseData.periods, ...newPeriods];
-            // Limitar a los últimos 5 periodos
             const limitedPeriods = combinedPeriods.slice(-5);
 
             const labels = horasBaseData.labels;
@@ -1836,6 +1811,10 @@
                 },
                 options: {
                     responsive: true,
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutQuad'
+                    },
                     plugins: {
                         legend: {
                             display: true
@@ -1903,6 +1882,10 @@
                 },
                 options: {
                     responsive: true,
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutQuad'
+                    },
                     plugins: {
                         legend: {
                             display: false
@@ -1970,6 +1953,10 @@
                 },
                 options: {
                     responsive: true,
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutQuad'
+                    },
                     plugins: {
                         legend: {
                             display: true
@@ -2005,7 +1992,6 @@
             });
         }
 
-        // NUEVA GRÁFICA LUGAR GLOBAL
         const lugarGlobalBaseData = {
             labels: ["Habitación", "Salas comunes", "Pasillos", "Baños comunes", "Comedor", "Recepción", "Jardín", "Sala terapia", "Capilla", "Otros"],
             periods: [
@@ -2026,7 +2012,6 @@
 
         function normalizeLugarGlobal(lugar) {
             const lower = lugar.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            // Agrupaciones:
             if (lower.includes("habitacion")) {
                 return "Habitación";
             }
@@ -2036,7 +2021,7 @@
             if (lower.includes("pasillo")) {
                 return "Pasillos";
             }
-            if (lower.includes("dentro del baño geriatrico")) {
+            if (lower.includes("dentro del baño geriatrico") || lower.includes("dentro del bano geriatrico")) {
                 return "Baños comunes";
             }
             if (lower.includes("comedor")) {
@@ -2051,16 +2036,12 @@
             if (lower.includes("sala de actividades")) {
                 return "Sala terapia";
             }
-            // La cafetería ahora es "Capilla" según instrucción, el epígrafe en la lista es "Capilla"
             if (lower.includes("capilla")) {
                 return "Capilla";
             }
-            // Otros: salón fondo planta 1, salón fondo planta 2, dentro del ascensor...
             if (lower.includes("salon fondo planta") || lower.includes("dentro del ascensor")) {
                 return "Otros";
             }
-
-            // Si no coincide con nada anterior:
             return "Otros";
         }
 
@@ -2117,7 +2098,6 @@
 
             const newPeriods = generateNewLugarGlobalPeriods(data);
             const combinedPeriods = [...lugarGlobalBaseData.periods, ...newPeriods];
-            // Limitar a los últimos 5 periodos
             const limitedPeriods = combinedPeriods.slice(-5);
 
             const labels = lugarGlobalBaseData.labels;
@@ -2148,6 +2128,10 @@
                 },
                 options: {
                     responsive: true,
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutQuad'
+                    },
                     plugins: {
                         legend: {
                             display: true
@@ -2183,33 +2167,55 @@
             });
         }
 
-        function initializeChartSections() {
-            // Mostrar el contenedor histórico por defecto
-            showChartContainer('chartHistoricoContainer');
-            setActiveChartSection(document.getElementById('btnHistorico'));
-        }
+        document.getElementById('btnHistorico').addEventListener('click', function() {
+            document.getElementById('chartHistoricoContainer').style.display = 'block';
+            document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'none';
+            document.getElementById('chartLugarHabitacionContainer').style.display = 'none';
+            document.getElementById('chartHorasContainer').style.display = 'none';
+            document.getElementById('chartLugarGlobalContainer').style.display = 'none';
+            setActiveChartSection(this);
+            historicalChart.update(); // Re-lanzar animación
+        });
 
-        function showChartContainer(containerId) {
-            const containers = [
-                'chartHistoricoContainer',
-                'chartConsecuenciasHistoricoContainer',
-                'chartLugarHabitacionContainer',
-                'chartHorasContainer',
-                'chartLugarGlobalContainer'
-            ];
-            containers.forEach(id => {
-                const container = document.getElementById(id);
-                if (id === containerId) {
-                    // Remover y re-agregar la clase para reiniciar la animación
-                    container.classList.remove('fade-in-up');
-                    void container.offsetWidth; // Trigger reflow
-                    container.classList.add('fade-in-up');
-                    container.style.display = 'block';
-                } else {
-                    container.style.display = 'none';
-                }
-            });
-        }
+        document.getElementById('btnConsecuenciasHistoricas').addEventListener('click', function() {
+            document.getElementById('chartHistoricoContainer').style.display = 'none';
+            document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'block';
+            document.getElementById('chartLugarHabitacionContainer').style.display = 'none';
+            document.getElementById('chartHorasContainer').style.display = 'none';
+            document.getElementById('chartLugarGlobalContainer').style.display = 'none';
+            setActiveChartSection(this);
+            consequencesChart.update(); // Re-lanzar animación
+        });
+
+        document.getElementById('btnLugarHabitacionHistorico').addEventListener('click', function() {
+            document.getElementById('chartHistoricoContainer').style.display = 'none';
+            document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'none';
+            document.getElementById('chartLugarHabitacionContainer').style.display = 'block';
+            document.getElementById('chartHorasContainer').style.display = 'none';
+            document.getElementById('chartLugarGlobalContainer').style.display = 'none';
+            setActiveChartSection(this);
+            lugarHabitacionChart.update(); // Re-lanzar animación
+        });
+
+        document.getElementById('btnHorasHistorico').addEventListener('click', function() {
+            document.getElementById('chartHistoricoContainer').style.display = 'none';
+            document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'none';
+            document.getElementById('chartLugarHabitacionContainer').style.display = 'none';
+            document.getElementById('chartHorasContainer').style.display = 'block';
+            document.getElementById('chartLugarGlobalContainer').style.display = 'none';
+            setActiveChartSection(this);
+            horasChart.update(); // Re-lanzar animación
+        });
+
+        document.getElementById('btnLugarGlobalHistorico').addEventListener('click', function() {
+            document.getElementById('chartHistoricoContainer').style.display = 'none';
+            document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'none';
+            document.getElementById('chartLugarHabitacionContainer').style.display = 'none';
+            document.getElementById('chartHorasContainer').style.display = 'none';
+            document.getElementById('chartLugarGlobalContainer').style.display = 'block';
+            setActiveChartSection(this);
+            lugarGlobalChart.update(); // Re-lanzar animación
+        });
 
         function setActiveChartSection(activeButton) {
             const buttons = document.querySelectorAll('.chart-selector .btn');
@@ -2217,10 +2223,19 @@
             activeButton.classList.add('active');
         }
 
+        function initializeChartSections() {
+            document.getElementById('chartHistoricoContainer').style.display = 'block';
+            document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'none';
+            document.getElementById('chartLugarHabitacionContainer').style.display = 'none';
+            document.getElementById('chartHorasContainer').style.display = 'none';
+            document.getElementById('chartLugarGlobalContainer').style.display = 'none';
+            setActiveChartSection(document.getElementById('btnHistorico'));
+        }
+
         function setDefaultDateFilters() {
             const today = new Date();
             const currentYear = today.getFullYear();
-            let mayFirst = new Date(currentYear, 4, 1); // Mayo es el mes 4 (0-indexed)
+            const mayFirst = new Date(currentYear, 4, 1);
 
             if (today < mayFirst) {
                 mayFirst.setFullYear(currentYear - 1);
@@ -2237,6 +2252,7 @@
             filterToDate.value = formatDate(today);
             filterFromDateCompare.value = "";
             filterToDateCompare.value = "";
+            baseStartDate = mayFirst; // Guardamos la fecha base para el cálculo de proyección
         }
 
         window.addEventListener('load', async function() {
@@ -2254,7 +2270,7 @@
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
 
-            // Inicialización de las nuevas gráficas
+            // Inicialización de las nuevas gráficas con animación
             renderHistoricalChart();
             renderConsequencesChart();
             renderLugarHabitacionChart();
