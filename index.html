@@ -806,13 +806,14 @@
             dataSet.forEach(item => {
                 if (item.lugar.toLowerCase().includes("habitación")) {
                     let lugarNormalized = item.lugar.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                    let lugarEspecifico = lugarNormalized.replace(/al lado de la cama de la habitacion|a los pies de la cama de la habitacion|en mitad de la habitacion|puerta del baño de la habitacion|dentro del baño de la habitacion/g, match => {
+                    // Ajuste: Cambiamos "baño" por "bano" en el pattern de búsqueda
+                    let lugarEspecifico = lugarNormalized.replace(/al lado de la cama de la habitacion|a los pies de la cama de la habitacion|en mitad de la habitacion|puerta del bano de la habitacion|dentro del bano de la habitacion/g, match => {
                         switch(match) {
                             case "al lado de la cama de la habitacion": return "Al lado de la cama de la habitación";
                             case "a los pies de la cama de la habitacion": return "A los pies de la cama de la habitación";
                             case "en mitad de la habitacion": return "En mitad de la habitación";
-                            case "puerta del baño de la habitacion": return "En la puerta del baño de la habitación";
-                            case "dentro del baño de la habitacion": return "Dentro del baño de la habitación";
+                            case "puerta del bano de la habitacion": return "Puerta del baño de la habitación";
+                            case "dentro del bano de la habitacion": return "Dentro del baño de la habitación";
                             default: return match;
                         }
                     });
@@ -1407,7 +1408,6 @@
             });
         });
 
-        // Datos originales de caídas históricas y consecuencias
         const historicalData = [
             { label: "2014-2015", value: 168 },
             { label: "2015-2016", value: 167 },
@@ -1448,7 +1448,6 @@
             return newPeriods;
         }
 
-        // Consecuencias históricas base
         const consequencesBaseData = {
             labels: ["Sin consecuencias","Contusión","Herida","TCE","Fractura cadera","Fractura"],
             periods: [
@@ -1532,14 +1531,11 @@
             return newPeriods;
         }
 
-        // *** CORRECCIÓN AQUÍ ***
-        // Ajustamos esta función para calcular el porcentaje respecto a todas las caídas del periodo,
-        // no solo las caídas en la habitación.
+        // Ajustamos para "bano"
         function getLugarHabitacionCountsInRange(dataSet, fromDateStr, toDateStr) {
             const fromDate = dateStrToDate(parseFecha(fromDateStr));
             const toDate = dateStrToDate(parseFecha(toDateStr));
             const categories = lugarHabitacionBaseData.labels;
-            let totalInHabitacion = 0;
             let totalFallsInPeriod = 0;
             const counts = {};
             categories.forEach(c => counts[c] = 0);
@@ -1547,38 +1543,32 @@
             dataSet.forEach(item => {
                 const itemDate = dateStrToDate(item.fecha);
                 if (itemDate >= fromDate && itemDate <= toDate) {
-                    totalFallsInPeriod++; // Contamos todas las caídas del periodo
-                    // Normalizar lugar
-                    if (item.lugar.toLowerCase().includes("habitación")) {
-                        let lugarNormalized = item.lugar.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                        let lugarEspecifico = lugarNormalized.replace(/al lado de la cama de la habitacion|a los pies de la cama de la habitacion|en mitad de la habitacion|puerta del baño de la habitacion|dentro del baño de la habitacion/g, match => {
-                            switch(match) {
-                                case "al lado de la cama de la habitacion": return "Al lado de la cama de la habitación";
-                                case "a los pies de la cama de la habitacion": return "A los pies de la cama de la habitación";
-                                case "en mitad de la habitacion": return "En mitad de la habitación";
-                                case "puerta del baño de la habitacion": return "En la puerta del baño de la habitación";
-                                case "dentro del baño de la habitacion": return "Dentro del baño de la habitación";
-                                default: return match;
-                            }
-                        });
-                        lugarEspecifico = lugarEspecifico.charAt(0).toUpperCase() + lugarEspecifico.slice(1);
-                        const cat = lugarHabitacionBaseData.labels.find(l => l === lugarEspecifico);
-                        if (cat) {
-                            counts[cat]++;
-                            totalInHabitacion++;
+                    totalFallsInPeriod++;
+                    let lugarNormalized = item.lugar.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    let lugarEspecifico = lugarNormalized.replace(/al lado de la cama de la habitacion|a los pies de la cama de la habitacion|en mitad de la habitacion|puerta del bano de la habitacion|dentro del bano de la habitacion/g, match => {
+                        switch(match) {
+                            case "al lado de la cama de la habitacion": return "Al lado de la cama de la habitación";
+                            case "a los pies de la cama de la habitacion": return "A los pies de la cama de la habitación";
+                            case "en mitad de la habitacion": return "En mitad de la habitación";
+                            case "puerta del bano de la habitacion": return "Puerta del baño de la habitación";
+                            case "dentro del bano de la habitacion": return "Dentro del baño de la habitación";
+                            default: return match;
                         }
+                    });
+                    lugarEspecifico = lugarEspecifico.charAt(0).toUpperCase() + lugarEspecifico.slice(1);
+                    const cat = lugarHabitacionBaseData.labels.find(l => l === lugarEspecifico);
+                    if (cat) {
+                        counts[cat]++;
                     }
                 }
             });
 
-            // Ahora el porcentaje se calcula sobre totalFallsInPeriod (todas las caídas del periodo)
             const percentages = categories.map(cat => {
                 return totalFallsInPeriod > 0 ? (counts[cat] / totalFallsInPeriod)*100 : 0;
             });
 
             return percentages;
         }
-        // *** FIN CORRECCIÓN ***
 
         function generateNewLugarHabitacionPeriods(dataSet) {
             const startYear = 2023;
