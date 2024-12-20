@@ -806,13 +806,13 @@
             dataSet.forEach(item => {
                 if (item.lugar.toLowerCase().includes("habitación")) {
                     let lugarNormalized = item.lugar.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                    // Ajuste: Cambiamos "baño" por "bano" en el pattern de búsqueda
+                    // Ajuste final: Cambiamos el retorno del case puerta del bano de la habitacion
                     let lugarEspecifico = lugarNormalized.replace(/al lado de la cama de la habitacion|a los pies de la cama de la habitacion|en mitad de la habitacion|puerta del bano de la habitacion|dentro del bano de la habitacion/g, match => {
                         switch(match) {
                             case "al lado de la cama de la habitacion": return "Al lado de la cama de la habitación";
                             case "a los pies de la cama de la habitacion": return "A los pies de la cama de la habitación";
                             case "en mitad de la habitacion": return "En mitad de la habitación";
-                            case "puerta del bano de la habitacion": return "Puerta del baño de la habitación";
+                            case "puerta del bano de la habitacion": return "En la puerta del baño de la habitación";
                             case "dentro del bano de la habitacion": return "Dentro del baño de la habitación";
                             default: return match;
                         }
@@ -1531,7 +1531,30 @@
             return newPeriods;
         }
 
-        // Ajustamos para "bano"
+        const lugarHabitacionBaseData = {
+            labels: [
+                "Al lado de la cama de la habitación",
+                "En mitad de la habitación",
+                "A los pies de la cama de la habitación",
+                "En la puerta del baño de la habitación",
+                "Dentro del baño de la habitación"
+            ],
+            periods: [
+                {
+                    label: "2018-2019",
+                    data: [30,10,5,6,15]
+                },
+                {
+                    label: "2021-2022(70 residentes)",
+                    data: [37,12,8,5,11]
+                },
+                {
+                    label: "2022-2023",
+                    data: [29,12,5,6,12]
+                }
+            ]
+        };
+
         function getLugarHabitacionCountsInRange(dataSet, fromDateStr, toDateStr) {
             const fromDate = dateStrToDate(parseFecha(fromDateStr));
             const toDate = dateStrToDate(parseFecha(toDateStr));
@@ -1550,7 +1573,7 @@
                             case "al lado de la cama de la habitacion": return "Al lado de la cama de la habitación";
                             case "a los pies de la cama de la habitacion": return "A los pies de la cama de la habitación";
                             case "en mitad de la habitacion": return "En mitad de la habitación";
-                            case "puerta del bano de la habitacion": return "Puerta del baño de la habitación";
+                            case "puerta del bano de la habitacion": return "En la puerta del baño de la habitación";
                             case "dentro del bano de la habitacion": return "Dentro del baño de la habitación";
                             default: return match;
                         }
@@ -1588,30 +1611,6 @@
             }
             return newPeriods;
         }
-
-        const lugarHabitacionBaseData = {
-            labels: [
-                "Al lado de la cama de la habitación",
-                "En mitad de la habitación",
-                "A los pies de la cama de la habitación",
-                "En la puerta del baño de la habitación",
-                "Dentro del baño de la habitación"
-            ],
-            periods: [
-                {
-                    label: "2018-2019",
-                    data: [30,10,5,6,15]
-                },
-                {
-                    label: "2021-2022(70 residentes)",
-                    data: [37,12,8,5,11]
-                },
-                {
-                    label: "2022-2023",
-                    data: [29,12,5,6,12]
-                }
-            ]
-        };
 
         let lugarHabitacionChart;
         function renderLugarHabitacionChart() {
