@@ -1532,17 +1532,22 @@
             return newPeriods;
         }
 
+        // *** CORRECCIÓN AQUÍ ***
+        // Ajustamos esta función para calcular el porcentaje respecto a todas las caídas del periodo,
+        // no solo las caídas en la habitación.
         function getLugarHabitacionCountsInRange(dataSet, fromDateStr, toDateStr) {
             const fromDate = dateStrToDate(parseFecha(fromDateStr));
             const toDate = dateStrToDate(parseFecha(toDateStr));
             const categories = lugarHabitacionBaseData.labels;
-            let total = 0;
+            let totalInHabitacion = 0;
+            let totalFallsInPeriod = 0;
             const counts = {};
             categories.forEach(c => counts[c] = 0);
 
             dataSet.forEach(item => {
                 const itemDate = dateStrToDate(item.fecha);
                 if (itemDate >= fromDate && itemDate <= toDate) {
+                    totalFallsInPeriod++; // Contamos todas las caídas del periodo
                     // Normalizar lugar
                     if (item.lugar.toLowerCase().includes("habitación")) {
                         let lugarNormalized = item.lugar.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -1560,18 +1565,20 @@
                         const cat = lugarHabitacionBaseData.labels.find(l => l === lugarEspecifico);
                         if (cat) {
                             counts[cat]++;
-                            total++;
+                            totalInHabitacion++;
                         }
                     }
                 }
             });
 
+            // Ahora el porcentaje se calcula sobre totalFallsInPeriod (todas las caídas del periodo)
             const percentages = categories.map(cat => {
-                return total > 0 ? Math.round((counts[cat] / total) * 100) : 0;
+                return totalFallsInPeriod > 0 ? (counts[cat] / totalFallsInPeriod)*100 : 0;
             });
 
             return percentages;
         }
+        // *** FIN CORRECCIÓN ***
 
         function generateNewLugarHabitacionPeriods(dataSet) {
             const startYear = 2023;
@@ -1592,7 +1599,6 @@
             return newPeriods;
         }
 
-        // NUEVOS DATOS BASE PARA LUGAR HABITACIÓN (Datos en porcentajes)
         const lugarHabitacionBaseData = {
             labels: [
                 "Al lado de la cama de la habitación",
@@ -1616,143 +1622,6 @@
                 }
             ]
         };
-
-        let historicalChart; 
-        function renderHistoricalChart() {
-            const chartHistoricoCtx = document.getElementById('chartHistorico').getContext('2d');
-
-            const newPeriods = generateNewPeriods(data);
-            const combinedData = [...historicalData, ...newPeriods];
-            // Se elimina la limitación a los últimos 5 periodos para incluir todos los periodos históricos
-            // const lastFive = combinedData.slice(-5);
-            const allPeriods = combinedData; // Incluye todos los periodos
-
-            const labels = allPeriods.map(d => d.label);
-            const values = allPeriods.map(d => d.value);
-
-            const backgroundColors = assignColors(labels); 
-            const borderColors = backgroundColors.map(c => c.replace('0.6','1'));
-
-            if (historicalChart) {
-                historicalChart.destroy();
-            }
-
-            historicalChart = new Chart(chartHistoricoCtx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Caídas registradas',
-                        data: values,
-                        backgroundColor: backgroundColors,
-                        borderColor: borderColors,
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        title: {
-                            display: true,
-                            text: 'Caídas en un año',
-                            padding: { top: 30, bottom: 10 }
-                        },
-                        datalabels: {
-                            anchor: 'end',
-                            align: 'end',
-                            formatter: function(value) {
-                                return value;
-                            },
-                            font: {
-                                weight: 'bold'
-                            },
-                            color: '#000'
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                },
-                plugins: [ChartDataLabels, whiteBackgroundPlugin]
-            });
-        }
-
-        let consequencesChart;
-        function renderConsequencesChart() {
-            const chartConsecuenciasCtx = document.getElementById('chartConsecuenciasHistorico').getContext('2d');
-
-            const newPeriods = generateNewConsequencesPeriods(data);
-            const combinedPeriods = [...consequencesBaseData.periods, ...newPeriods];
-            // Limitar a los últimos 5 periodos
-            const limitedPeriods = combinedPeriods.slice(-5);
-
-            const labels = consequencesBaseData.labels;
-            const allPeriodLabels = limitedPeriods.map(p => p.label);
-            const palette = assignColors(allPeriodLabels);
-
-            const datasets = limitedPeriods.map((period, index) => {
-                const bgColor = palette[index];
-                const borderColor = bgColor.replace('0.6','1');
-                return {
-                    label: period.label,
-                    data: period.data.map(p => parseFloat(p.toFixed(0))),
-                    backgroundColor: bgColor,
-                    borderColor: borderColor,
-                    borderWidth: 1
-                };
-            });
-
-            if (consequencesChart) {
-                consequencesChart.destroy();
-            }
-
-            consequencesChart = new Chart(chartConsecuenciasCtx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: datasets
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            display: true
-                        },
-                        title: {
-                            display: true,
-                            text: 'Consecuencias de las caídas (En % del total de caídas)',
-                            padding: { top: 30, bottom: 10 }
-                        },
-                        datalabels: {
-                            anchor: 'end',
-                            align: 'end',
-                            formatter: function(value) {
-                                return value;
-                            },
-                            font: {
-                                weight: 'bold'
-                            },
-                            color: '#000'
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Porcentaje (%)'
-                            }
-                        }
-                    }
-                },
-                plugins: [ChartDataLabels, whiteBackgroundPlugin]
-            });
-        }
 
         let lugarHabitacionChart;
         function renderLugarHabitacionChart() {
@@ -1826,7 +1695,7 @@
             });
         }
 
-        // NUEVOS DATOS BASE PARA HORAS DE LAS CAÍDAS (Datos en porcentajes)
+        let horasChart;
         const horasBaseData = {
             labels: ["8 a 10","10 a 12","12 a 14","14 a 16","16 a 18","18 a 20","20 a 22","22 a 0","0 a 2","2 a 4","4 a 6","6 a 8"],
             periods: [
@@ -1856,11 +1725,10 @@
             dataSet.forEach(item => {
                 const itemDate = dateStrToDate(item.fecha);
                 if (itemDate >= fromDate && itemDate <= toDate) {
-                    // item.franja da la franja horaria directamente
+                    total++;
                     const f = categories.find(cat => cat === item.franja);
                     if (f) {
                         counts[f]++;
-                        total++;
                     }
                 }
             });
@@ -1891,7 +1759,6 @@
             return newPeriods;
         }
 
-        let horasChart;
         function renderHorasChart() {
             const chartHorasCtx = document.getElementById('chartHoras').getContext('2d');
 
@@ -1942,6 +1809,140 @@
                             align: 'end',
                             formatter: function(value) {
                                 return value + '%';
+                            },
+                            font: {
+                                weight: 'bold'
+                            },
+                            color: '#000'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Porcentaje (%)'
+                            }
+                        }
+                    }
+                },
+                plugins: [ChartDataLabels, whiteBackgroundPlugin]
+            });
+        }
+
+        let historicalChart; 
+        function renderHistoricalChart() {
+            const chartHistoricoCtx = document.getElementById('chartHistorico').getContext('2d');
+
+            const newPeriods = generateNewPeriods(data);
+            const combinedData = [...historicalData, ...newPeriods];
+            const allPeriods = combinedData;
+
+            const labels = allPeriods.map(d => d.label);
+            const values = allPeriods.map(d => d.value);
+
+            const backgroundColors = assignColors(labels); 
+            const borderColors = backgroundColors.map(c => c.replace('0.6','1'));
+
+            if (historicalChart) {
+                historicalChart.destroy();
+            }
+
+            historicalChart = new Chart(chartHistoricoCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Caídas registradas',
+                        data: values,
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Caídas en un año',
+                            padding: { top: 30, bottom: 10 }
+                        },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'end',
+                            formatter: function(value) {
+                                return value;
+                            },
+                            font: {
+                                weight: 'bold'
+                            },
+                            color: '#000'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                },
+                plugins: [ChartDataLabels, whiteBackgroundPlugin]
+            });
+        }
+
+        let consequencesChart;
+        function renderConsequencesChart() {
+            const chartConsecuenciasCtx = document.getElementById('chartConsecuenciasHistorico').getContext('2d');
+
+            const newPeriods = generateNewConsequencesPeriods(data);
+            const combinedPeriods = [...consequencesBaseData.periods, ...newPeriods];
+            const limitedPeriods = combinedPeriods.slice(-5);
+
+            const labels = consequencesBaseData.labels;
+            const allPeriodLabels = limitedPeriods.map(p => p.label);
+            const palette = assignColors(allPeriodLabels);
+
+            const datasets = limitedPeriods.map((period, index) => {
+                const bgColor = palette[index];
+                const borderColor = bgColor.replace('0.6','1');
+                return {
+                    label: period.label,
+                    data: period.data.map(p => parseFloat(p.toFixed(0))),
+                    backgroundColor: bgColor,
+                    borderColor: borderColor,
+                    borderWidth: 1
+                };
+            });
+
+            if (consequencesChart) {
+                consequencesChart.destroy();
+            }
+
+            consequencesChart = new Chart(chartConsecuenciasCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true
+                        },
+                        title: {
+                            display: true,
+                            text: 'Consecuencias de las caídas (En % del total de caídas)',
+                            padding: { top: 30, bottom: 10 }
+                        },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'end',
+                            formatter: function(value) {
+                                return value;
                             },
                             font: {
                                 weight: 'bold'
