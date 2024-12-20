@@ -802,6 +802,7 @@
         }
 
         
+
 function getCaidasPorLugarHabitacion(dataSet) {
     const lugarHabitacionCount = {};
     const totalFallsByPeriod = { "2023-2024": 0, "2024-2025": 0 };
@@ -818,6 +819,50 @@ function getCaidasPorLugarHabitacion(dataSet) {
         } else if (itemDate >= may2024 && itemDate <= april2025) {
             totalFallsByPeriod["2024-2025"] += 1;
         }
+
+        if (item.lugar.toLowerCase().includes("habitación")) {
+            let lugarNormalized = item.lugar.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+            let lugarEspecifico = lugarNormalized.replace(/al lado de la cama de la habitacion|a los pies de la cama de la habitacion|en mitad de la habitacion|puerta del baño de la habitacion|dentro del baño de la habitacion/g, match => {
+                switch(match) {
+                    case "al lado de la cama de la habitacion": return "Al lado de la cama de la habitación";
+                    case "a los pies de la cama de la habitacion": return "A los pies de la cama de la habitación";
+                    case "en mitad de la habitacion": return "En mitad de la habitación";
+                    case "puerta del baño de la habitacion": return "En la puerta del baño de la habitación";
+                    case "dentro del baño de la habitacion": return "Dentro del baño de la habitación";
+                    default: return match;
+                }
+            });
+            lugarEspecifico = lugarEspecifico.charAt(0).toUpperCase() + lugarEspecifico.slice(1);
+
+            if (!lugarHabitacionCount[lugarEspecifico]) {
+                lugarHabitacionCount[lugarEspecifico] = { "2023-2024": 0, "2024-2025": 0 };
+            }
+
+            if (itemDate >= may2023 && itemDate <= april2024) {
+                lugarHabitacionCount[lugarEspecifico]["2023-2024"] += 1;
+            } else if (itemDate >= may2024 && itemDate <= april2025) {
+                lugarHabitacionCount[lugarEspecifico]["2024-2025"] += 1;
+            }
+        }
+    });
+
+    const labels = Object.keys(lugarHabitacionCount).sort();
+    const datasets = ["2023-2024", "2024-2025"].map(period => {
+        return {
+            label: period,
+            data: labels.map(label => {
+                const count = lugarHabitacionCount[label][period] || 0;
+                const totalFalls = totalFallsByPeriod[period];
+                return totalFalls > 0 ? Math.round((count / totalFalls) * 100) : 0;
+            }),
+            backgroundColor: period === "2023-2024" ? 'rgba(54, 162, 235, 0.6)' : 'rgba(255, 99, 132, 0.6)',
+            borderColor: period === "2023-2024" ? 'rgba(54, 162, 235, 1)' : 'rgba(255, 99, 132, 1)',
+            borderWidth: 1
+        };
+    });
+
+    return { labels, datasets };
+}
 
         if (item.lugar.toLowerCase().includes("habitación")) {
             let lugarNormalized = item.lugar.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
