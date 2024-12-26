@@ -1685,11 +1685,11 @@
                 };
             });
 
+            // Se elimina la animación previa y se agrega la nueva animación (idéntica a la gráfica superior):
             if (lugarHabitacionChart) {
                 lugarHabitacionChart.destroy();
             }
 
-            // Se unifica la animación con la del gráfico superior
             lugarHabitacionChart = new Chart(chartLugarHabitacionCtx, {
                 type: 'bar',
                 data: {
@@ -1698,6 +1698,7 @@
                 },
                 options: {
                     responsive: true,
+                    // Nueva animación (idéntica al gráfico superior):
                     animation: {
                         duration: 2000,
                         easing: 'easeInOutQuad'
@@ -1828,7 +1829,6 @@
                 horasChart.destroy();
             }
 
-            // Animación unificada
             horasChart = new Chart(chartHorasCtx, {
                 type: 'bar',
                 data: {
@@ -1837,6 +1837,7 @@
                 },
                 options: {
                     responsive: true,
+                    // Nueva animación (idéntica al gráfico superior):
                     animation: {
                         duration: 2000,
                         easing: 'easeInOutQuad'
@@ -1894,7 +1895,6 @@
                 historicalChart.destroy();
             }
 
-            // Animación unificada
             historicalChart = new Chart(chartHistoricoCtx, {
                 type: 'bar',
                 data: {
@@ -1909,6 +1909,7 @@
                 },
                 options: {
                     responsive: true,
+                    // Nueva animación (idéntica al gráfico superior):
                     animation: {
                         duration: 2000,
                         easing: 'easeInOutQuad'
@@ -1972,7 +1973,6 @@
                 consequencesChart.destroy();
             }
 
-            // Animación unificada
             consequencesChart = new Chart(chartConsecuenciasCtx, {
                 type: 'bar',
                 data: {
@@ -1981,6 +1981,7 @@
                 },
                 options: {
                     responsive: true,
+                    // Nueva animación (idéntica al gráfico superior):
                     animation: {
                         duration: 2000,
                         easing: 'easeInOutQuad'
@@ -2148,7 +2149,6 @@
                 lugarGlobalChart.destroy();
             }
 
-            // Animación unificada
             lugarGlobalChart = new Chart(chartLugarGlobalCtx, {
                 type: 'bar',
                 data: {
@@ -2157,6 +2157,7 @@
                 },
                 options: {
                     responsive: true,
+                    // Nueva animación (idéntica al gráfico superior):
                     animation: {
                         duration: 2000,
                         easing: 'easeInOutQuad'
@@ -2313,7 +2314,7 @@
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
 
-            // Inicialización de las nuevas gráficas con la misma animación
+            // Inicialización de las nuevas gráficas con la misma animación que la superior
             renderHistoricalChart();
             renderConsequencesChart();
             renderLugarHabitacionChart();
