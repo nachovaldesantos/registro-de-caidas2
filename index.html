@@ -856,6 +856,7 @@
 
         Chart.register(ChartDataLabels);
 
+        // GRÁFICA SUPERIOR (con la animación base)
         let chart = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -1685,11 +1686,11 @@
                 };
             });
 
-            // Se elimina la animación previa y se agrega la nueva animación (idéntica a la gráfica superior):
             if (lugarHabitacionChart) {
                 lugarHabitacionChart.destroy();
             }
 
+            // Se iguala la animación al gráfico superior
             lugarHabitacionChart = new Chart(chartLugarHabitacionCtx, {
                 type: 'bar',
                 data: {
@@ -1698,7 +1699,6 @@
                 },
                 options: {
                     responsive: true,
-                    // Nueva animación (idéntica al gráfico superior):
                     animation: {
                         duration: 2000,
                         easing: 'easeInOutQuad'
@@ -1829,6 +1829,7 @@
                 horasChart.destroy();
             }
 
+            // Igualar animación al gráfico superior
             horasChart = new Chart(chartHorasCtx, {
                 type: 'bar',
                 data: {
@@ -1837,7 +1838,6 @@
                 },
                 options: {
                     responsive: true,
-                    // Nueva animación (idéntica al gráfico superior):
                     animation: {
                         duration: 2000,
                         easing: 'easeInOutQuad'
@@ -1895,6 +1895,7 @@
                 historicalChart.destroy();
             }
 
+            // Igualar animación al gráfico superior
             historicalChart = new Chart(chartHistoricoCtx, {
                 type: 'bar',
                 data: {
@@ -1909,7 +1910,6 @@
                 },
                 options: {
                     responsive: true,
-                    // Nueva animación (idéntica al gráfico superior):
                     animation: {
                         duration: 2000,
                         easing: 'easeInOutQuad'
@@ -1973,6 +1973,7 @@
                 consequencesChart.destroy();
             }
 
+            // Igualar animación al gráfico superior
             consequencesChart = new Chart(chartConsecuenciasCtx, {
                 type: 'bar',
                 data: {
@@ -1981,7 +1982,6 @@
                 },
                 options: {
                     responsive: true,
-                    // Nueva animación (idéntica al gráfico superior):
                     animation: {
                         duration: 2000,
                         easing: 'easeInOutQuad'
@@ -2149,6 +2149,7 @@
                 lugarGlobalChart.destroy();
             }
 
+            // Igualar animación al gráfico superior
             lugarGlobalChart = new Chart(chartLugarGlobalCtx, {
                 type: 'bar',
                 data: {
@@ -2157,7 +2158,6 @@
                 },
                 options: {
                     responsive: true,
-                    // Nueva animación (idéntica al gráfico superior):
                     animation: {
                         duration: 2000,
                         easing: 'easeInOutQuad'
@@ -2314,7 +2314,7 @@
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
 
-            // Inicialización de las nuevas gráficas con la misma animación que la superior
+            // Inicialización de las nuevas gráficas con la MISMA animación que la superior
             renderHistoricalChart();
             renderConsequencesChart();
             renderLugarHabitacionChart();
