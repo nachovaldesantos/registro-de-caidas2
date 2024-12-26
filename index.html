@@ -384,6 +384,11 @@
     <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
     
     <script>
+        /*
+         * -----------------------------------------------------------------------------
+         * SECCIÓN DE LÓGICA DE NETLIFY IDENTITY
+         * -----------------------------------------------------------------------------
+         */
         document.addEventListener("DOMContentLoaded", () => {
             const loginBtn = document.getElementById("login-btn");
             const logoutBtn = document.getElementById("logout-btn");
@@ -432,18 +437,33 @@
     </script>
 
     <script>
+        /*
+         * -----------------------------------------------------------------------------
+         * SECCIÓN PRINCIPAL DE DATOS Y LÓGICA DE LA APLICACIÓN
+         * -----------------------------------------------------------------------------
+         */
         const apiUrl = "https://sheetdb.io/api/v1/oawmv4fq268tr";
 
+        /*
+         * -----------------------------------------------------------------------------
+         * 1. FUNCIONES AUXILIARES Y VARIABLES GLOBALES
+         * -----------------------------------------------------------------------------
+         */
         function generateUniqueId() {
             return '_' + Math.random().toString(36).substr(2, 9);
         }
 
-        // Convierte dd/mm/yyyy a Date
+        // Convierte dd/mm/yyyy a objeto Date
         function dateStrToDate(dStr) {
             const [dia, mes, año] = dStr.split('/').map(n=>parseInt(n,10));
             return new Date(año, mes-1, dia);
         }
 
+        /*
+         * parseFecha()
+         *  - Soporta formato d/m/yyyy o yyyy-mm-dd
+         *  - Devuelve siempre un string "d/m/yyyy" validado
+         */
         function parseFecha(fechaStr) {
             let partes;
             if (fechaStr.includes('/')) {
@@ -471,6 +491,11 @@
             }
         }
 
+        /*
+         * convertNameToCode()
+         *  - Transforma el nombre en un "código" simplificado (Ej: "Luis Rodríguez" -> "RodLi")
+         *  - Evita exponer nombres completos
+         */
         function convertNameToCode(fullName) {
             const parts = fullName.trim().split(" ");
             if (parts.length < 2) return fullName; 
@@ -504,6 +529,7 @@
             return colors;
         }
 
+        // Plugin para fondo blanco en exportación de gráficas
         const whiteBackgroundPlugin = {
             id: 'custom_canvas_background_color',
             beforeDraw: (chart, args, options) => {
@@ -525,6 +551,13 @@
             };
         }
 
+        /*
+         * -----------------------------------------------------------------------------
+         * 2. DATOS LOCALES PREDEFINIDOS
+         * -----------------------------------------------------------------------------
+         * - data: arreglo principal
+         * - Se cargan al final adicionalmente los datos remotos (fetchRemoteData())
+         */
         let data = [
             { id: generateUniqueId(), residente: "Elías Lara", fecha: "4/5/2024", franja: "6 a 8", lugar: "Al lado de la cama de la habitación", consecuencias: "Sin consecuencias", sensor: "Se oyó" },
             { id: generateUniqueId(), residente: "María Folgado", fecha: "13/5/2024", franja: "14 a 16", lugar: "En mitad de la habitación", consecuencias: "TCE", sensor: "No hay sensor" },
@@ -594,7 +627,7 @@
             { id: generateUniqueId(), residente: "Josefina Perdiguero", fecha: "21/6/2024", franja: "16 a 18", lugar: "Dentro del baño de la habitación", consecuencias: "Sin consecuencias", sensor: "No hay sensor" }
         ];
 
-        // Convertir nombres a códigos
+        // Convertir nombres a códigos al iniciar
         data = data.map(item => {
             return {
                 ...item,
@@ -602,6 +635,11 @@
             }
         });
 
+        /*
+         * -----------------------------------------------------------------------------
+         * 3. ELEMENTOS DEL DOM Y VARIABLES QUE APUNTAN A ELLOS
+         * -----------------------------------------------------------------------------
+         */
         const filterFranjaSelect = document.getElementById('filterFranjaSelect');
         const filterLugarSelect = document.getElementById('filterLugarSelect');
         const filterConsecuenciasSelect = document.getElementById('filterConsecuenciasSelect');
@@ -622,10 +660,15 @@
         const periodo1Btn = document.getElementById('periodo1Btn');
         const periodo2Btn = document.getElementById('periodo2Btn');
 
+        /*
+         * -----------------------------------------------------------------------------
+         * 4. FILTRADO, RENDERIZADO DE TABLA Y ACTUALIZACIÓN DE CONTADORES
+         * -----------------------------------------------------------------------------
+         */
         let actionStack = [];
         let currentChartType = 'franja';
         let filteredData = [...data]; 
-        let baseStartDate; // Almacena la fecha del último 1 de mayo
+        let baseStartDate; // Para la proyección anual
 
         function filterData() {
             const selectedFranja = filterFranjaSelect.value;
@@ -679,6 +722,7 @@
                     const toDateObj = new Date(toDateCompareValue);
                     if (itemDate < fromDateObj || itemDate > toDateObj) pass = false;
                 } else {
+                    // Si no hay rango de comparación, no tomamos este registro
                     return false;
                 }
 
@@ -688,6 +732,7 @@
         }
 
         function renderTable(fData) {
+            // Ordenar por fecha ascendente
             fData.sort((a, b) => dateStrToDate(a.fecha) - dateStrToDate(b.fecha));
 
             tbody.innerHTML = "";
@@ -707,7 +752,9 @@
         }
 
         function initializeFilterSelects() {
+            // Inicializamos los selects con sus opciones únicas
             const uniqueFranjas = [...new Set(data.map(d => d.franja))].sort((a, b) => {
+                // Ordenar las franjas según su secuencia horaria
                 const timeOrder = ["0 a 2","2 a 4","4 a 6","6 a 8","8 a 10","10 a 12","12 a 14","14 a 16","16 a 18","18 a 20","20 a 22","22 a 0"];
                 return timeOrder.indexOf(a) - timeOrder.indexOf(b);
             });
@@ -747,6 +794,9 @@
             });
         }
 
+        /*
+         * Genera un rango de fechas completo para ejes X de la gráfica (type: 'fecha')
+         */
         function generateDateRange(startDate, endDate) {
             const dates = [];
             const currentDate = new Date(startDate);
@@ -760,6 +810,11 @@
             return dates;
         }
 
+        /*
+         * -----------------------------------------------------------------------------
+         * 5. FUNCIONES PARA CÁLCULOS DE DATOS SEGÚN DIFERENTES CRITERIOS (GRÁFICAS)
+         * -----------------------------------------------------------------------------
+         */
         function getCaidasPorFecha(dataSet) {
             const dateCount = {};
             dataSet.forEach(item => {
@@ -813,20 +868,27 @@
         }
 
         function getCaidasPorLugarHabitacion(dataSet) {
+            /*
+             * Filtra solo las caídas que mencionan "habitación" y las categoriza de manera uniforme.
+             */
             const lugarHabitacionCount = {};
             dataSet.forEach(item => {
                 if (item.lugar.toLowerCase().includes("habitación") || item.lugar.toLowerCase().includes("habitacion")) {
                     let lugarNormalized = item.lugar.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                    let lugarEspecifico = lugarNormalized.replace(/al lado de la cama de la habitacion|a los pies de la cama de la habitacion|en mitad de la habitacion|puerta del bano de la habitacion|dentro del bano de la habitacion/g, match => {
-                        switch(match) {
-                            case "al lado de la cama de la habitacion": return "Al lado de la cama de la habitación";
-                            case "a los pies de la cama de la habitacion": return "A los pies de la cama de la habitación";
-                            case "en mitad de la habitacion": return "En mitad de la habitación";
-                            case "puerta del bano de la habitacion": return "En la puerta del baño de la habitación";
-                            case "dentro del bano de la habitacion": return "Dentro del baño de la habitación";
-                            default: return match;
+                    let lugarEspecifico = lugarNormalized.replace(
+                        /al lado de la cama de la habitacion|a los pies de la cama de la habitacion|en mitad de la habitacion|puerta del bano de la habitacion|dentro del bano de la habitacion/g,
+                        match => {
+                            switch(match) {
+                                case "al lado de la cama de la habitacion": return "Al lado de la cama de la habitación";
+                                case "a los pies de la cama de la habitacion": return "A los pies de la cama de la habitación";
+                                case "en mitad de la habitacion": return "En mitad de la habitación";
+                                case "puerta del bano de la habitacion": return "En la puerta del baño de la habitación";
+                                case "dentro del bano de la habitacion": return "Dentro del baño de la habitación";
+                                default: return match;
+                            }
                         }
-                    });
+                    );
+                    // Ajuste de la primera letra a mayúscula
                     lugarEspecifico = lugarEspecifico.charAt(0).toUpperCase() + lugarEspecifico.slice(1);
                     lugarHabitacionCount[lugarEspecifico] = (lugarHabitacionCount[lugarEspecifico] || 0) + 1;
                 }
@@ -847,6 +909,11 @@
             return { labels: filteredResidentes, counts };
         }
 
+        /*
+         * -----------------------------------------------------------------------------
+         * 6. INICIALIZACIÓN DE LA GRÁFICA PRINCIPAL
+         * -----------------------------------------------------------------------------
+         */
         Chart.register(ChartDataLabels);
 
         let chart = new Chart(ctx, {
@@ -894,6 +961,11 @@
             plugins: [ChartDataLabels, whiteBackgroundPlugin]
         });
 
+        /*
+         * -----------------------------------------------------------------------------
+         * 7. FUNCIÓN PRINCIPAL PARA ACTUALIZAR LA GRÁFICA (RENDERCHART)
+         * -----------------------------------------------------------------------------
+         */
         function getChartDataForType(type, dataSet) {
             let rawData;
             if (type === 'franja') {
@@ -932,6 +1004,7 @@
                 const allLabelsSet = new Set([...chartData1.labels, ...chartData2.labels]);
                 const allLabels = Array.from(allLabelsSet);
 
+                // Ordenar las etiquetas en caso de franja o fecha
                 if (type === 'franja') {
                     const timeOrder = ["0 a 2","2 a 4","4 a 6","6 a 8","8 a 10","10 a 12","12 a 14","14 a 16","16 a 18","18 a 20","20 a 22","22 a 0"];
                     allLabels.sort((a, b) => timeOrder.indexOf(a) - timeOrder.indexOf(b));
@@ -942,6 +1015,7 @@
                         return dateA - dateB;
                     });
                 } else {
+                    // Orden alfabético por defecto
                     allLabels.sort();
                 }
 
@@ -955,14 +1029,15 @@
                     map2.set(label, chartData2.counts[index]);
                 });
 
+                // Calculamos el total de cada dataset para luego mostrar porcentajes
                 const total1 = counts1.reduce((a,b) => a+b,0);
                 const total2 = chartData2.counts.reduce((a,b) => a+b,0);
 
+                // Transformamos a % para la comparación
                 const percentage1 = allLabels.map(label => {
                     const count = map1.get(label) || 0;
                     return total1 > 0 ? Math.round((count / total1) * 100) : 0;
                 });
-
                 const percentage2 = allLabels.map(label => {
                     const count = map2.get(label) || 0;
                     return total2 > 0 ? Math.round((count / total2) * 100) : 0;
@@ -973,6 +1048,7 @@
                 counts2 = percentage2;
             }
 
+            // Definir el label genérico para el eje Y
             let chartLabel = '';
             if (type === 'franja') chartLabel = 'Número de caídas por franja horaria';
             else if (type === 'lugar') chartLabel = 'Número de caídas por lugar';
@@ -1022,6 +1098,7 @@
                 };
             }
 
+            // Si no es franja ni fecha, reordenamos de mayor a menor
             if (type !== 'franja' && type !== 'fecha') {
                 const sortedColors = assignColors(labels1);
                 if (!compareMode) {
@@ -1042,6 +1119,7 @@
                     });
                 }
             } else {
+                // franja o fecha no se reordenan
                 chart.data.labels = labels1;
                 if (!compareMode) {
                     datasets[0].backgroundColor = assignColors(labels1);
@@ -1068,6 +1146,7 @@
 
             // Cálculo de la proyección anual de caídas
             const today = new Date();
+            // fallsSinceMayFirst: cuántas caídas desde la "baseStartDate" hasta hoy
             const fallsSinceMayFirst = data.filter(d => {
                 const dDate = dateStrToDate(d.fecha);
                 return dDate >= baseStartDate && dDate <= today;
@@ -1078,6 +1157,11 @@
             projectedFallsElement.innerText = projected;
         }
 
+        /*
+         * -----------------------------------------------------------------------------
+         * 8. EVENTOS DE LOS ELEMENTOS DE FILTRO
+         * -----------------------------------------------------------------------------
+         */
         filterFranjaSelect.addEventListener('change', filterData);
         filterLugarSelect.addEventListener('change', filterData);
         filterConsecuenciasSelect.addEventListener('change', filterData);
@@ -1162,11 +1246,17 @@
             activeButton.classList.add('active');
         }
 
+        /*
+         * -----------------------------------------------------------------------------
+         * 9. BOTÓN PARA EXPORTAR A EXCEL
+         * -----------------------------------------------------------------------------
+         */
         document.getElementById('exportExcel').addEventListener('click', () => {
             if (data.length === 0) {
                 alert('No hay datos para exportar.');
                 return;
             }
+            // Omitir la propiedad "id" en la exportación
             const exportData = data.map(({id, ...rest}) => rest);
             const worksheet = XLSX.utils.json_to_sheet(exportData);
             const workbook = XLSX.utils.book_new();
@@ -1174,6 +1264,11 @@
             XLSX.writeFile(workbook, "RegistroCaidas.xlsx");
         });
 
+        /*
+         * -----------------------------------------------------------------------------
+         * 10. CARGAR Y GUARDAR DATOS REMOTOS (sheetdb.io)
+         * -----------------------------------------------------------------------------
+         */
         async function fetchRemoteData() {
             try {
                 const response = await fetch(apiUrl);
@@ -1260,6 +1355,11 @@
             }
         }
 
+        /*
+         * -----------------------------------------------------------------------------
+         * 11. BOTÓN "ELIMINAR TODOS LOS REGISTROS"
+         * -----------------------------------------------------------------------------
+         */
         document.getElementById('deleteAll').addEventListener('click', async () => {
             if (data.length === 0) {
                 alert('No hay registros para eliminar.');
@@ -1277,6 +1377,11 @@
             }
         });
 
+        /*
+         * -----------------------------------------------------------------------------
+         * 12. OTRAS UTILIDADES
+         * -----------------------------------------------------------------------------
+         */
         function actualizarDatalistResidentes() {
             const uniqueResidentes = [...new Set(data.map(d => d.residente))].sort();
             const residentesList = document.getElementById('residentesList');
@@ -1300,6 +1405,11 @@
 
         document.getElementById('clearFiltersBtn').addEventListener('click', clearAllFilters);
 
+        /*
+         * -----------------------------------------------------------------------------
+         * 13. FORMULARIO PARA REGISTRAR NUEVAS CAÍDAS
+         * -----------------------------------------------------------------------------
+         */
         document.getElementById('registroCaidas').addEventListener('submit', async function(e) {
             e.preventDefault();
             let residente = document.getElementById('nombreResidente').value.trim();
@@ -1341,12 +1451,18 @@
             updateButtonStates();
             actualizarDatalistResidentes();
 
+            // Agregamos el nuevo residente al select, si no existe
             if (!filterResidenteSelect.querySelector(`option[value="${nuevoRegistro.residente}"]`)) {
                 filterResidenteSelect.innerHTML += `<option value="${nuevoRegistro.residente}">${nuevoRegistro.residente}</option>`;
             }
             alert('Caída registrada exitosamente');
         });
 
+        /*
+         * -----------------------------------------------------------------------------
+         * 14. ELIMINAR REGISTRO INDIVIDUAL (BOTÓN "Eliminar")
+         * -----------------------------------------------------------------------------
+         */
         document.querySelector("#data-table tbody").addEventListener('click', async function(e) {
             if (e.target && e.target.classList.contains('delete-btn')) {
                 const id = e.target.getAttribute('data-id');
@@ -1366,6 +1482,11 @@
             }
         });
 
+        /*
+         * -----------------------------------------------------------------------------
+         * 15. BOTONES DE TIPO DE GRÁFICA PRINCIPAL
+         * -----------------------------------------------------------------------------
+         */
         document.getElementById('btnFranja').addEventListener('click', function() {
             currentChartType = 'franja';
             setActiveButton(this);
@@ -1410,11 +1531,7 @@
 
         function updateButtonStates() {
             const deleteAllButton = document.getElementById('deleteAll');
-            if (data.length > 0) {
-                deleteAllButton.disabled = false;
-            } else {
-                deleteAllButton.disabled = true;
-            }
+            deleteAllButton.disabled = !(data.length > 0);
         }
 
         document.querySelectorAll('.download-chart-button').forEach(button => {
@@ -1433,6 +1550,11 @@
             });
         });
 
+        /*
+         * -----------------------------------------------------------------------------
+         * 16. SECCIÓN DE GRÁFICAS HISTÓRICAS
+         * -----------------------------------------------------------------------------
+         */
         const historicalData = [
             { label: "2014-2015", value: 168 },
             { label: "2015-2016", value: 167 },
@@ -1473,6 +1595,83 @@
             return newPeriods;
         }
 
+        /*
+         * -----------------------------------------------------------------------------
+         * 17. GRÁFICA HISTÓRICA DE CAÍDAS
+         * -----------------------------------------------------------------------------
+         */
+        let historicalChart; 
+        function renderHistoricalChart() {
+            const chartHistoricoCtx = document.getElementById('chartHistorico').getContext('2d');
+
+            const newPeriods = generateNewPeriods(data);
+            const combinedData = [...historicalData, ...newPeriods];
+            const allPeriods = combinedData;
+
+            const labels = allPeriods.map(d => d.label);
+            const values = allPeriods.map(d => d.value);
+
+            const backgroundColors = assignColors(labels); 
+            const borderColors = backgroundColors.map(c => c.replace('0.6','1'));
+
+            if (historicalChart) {
+                historicalChart.destroy();
+            }
+
+            historicalChart = new Chart(chartHistoricoCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Caídas registradas',
+                        data: values,
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutQuad'
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Caídas en un año',
+                            padding: { top: 30, bottom: 10 }
+                        },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'end',
+                            formatter: function(value) {
+                                return value;
+                            },
+                            font: {
+                                weight: 'bold'
+                            },
+                            color: '#000'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                },
+                plugins: [ChartDataLabels, whiteBackgroundPlugin]
+            });
+        }
+
+        /*
+         * -----------------------------------------------------------------------------
+         * 18. GRÁFICA HISTÓRICA DE CONSECUENCIAS
+         * -----------------------------------------------------------------------------
+         */
         const consequencesBaseData = {
             labels: ["Sin consecuencias","Contusión","Herida","TCE","Fractura cadera","Fractura"],
             periods: [
@@ -1556,6 +1755,86 @@
             return newPeriods;
         }
 
+        let consequencesChart;
+        function renderConsequencesChart() {
+            const chartConsecuenciasCtx = document.getElementById('chartConsecuenciasHistorico').getContext('2d');
+
+            const newPeriods = generateNewConsequencesPeriods(data);
+            const combinedPeriods = [...consequencesBaseData.periods, ...newPeriods];
+            const limitedPeriods = combinedPeriods.slice(-5);
+
+            const labels = consequencesBaseData.labels;
+            const allPeriodLabels = limitedPeriods.map(p => p.label);
+            const palette = assignColors(allPeriodLabels);
+
+            const datasets = limitedPeriods.map((period, index) => {
+                const bgColor = palette[index];
+                const borderColor = bgColor.replace('0.6','1');
+                return {
+                    label: period.label,
+                    data: period.data.map(p => parseFloat(p.toFixed(0))),
+                    backgroundColor: bgColor,
+                    borderColor: borderColor,
+                    borderWidth: 1
+                };
+            });
+
+            if (consequencesChart) {
+                consequencesChart.destroy();
+            }
+
+            consequencesChart = new Chart(chartConsecuenciasCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutQuad'
+                    },
+                    plugins: {
+                        legend: {
+                            display: true
+                        },
+                        title: {
+                            display: true,
+                            text: 'Consecuencias de las caídas (En % del total de caídas)',
+                            padding: { top: 30, bottom: 10 }
+                        },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'end',
+                            formatter: function(value) {
+                                return value;
+                            },
+                            font: {
+                                weight: 'bold'
+                            },
+                            color: '#000'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Porcentaje (%)'
+                            }
+                        }
+                    }
+                },
+                plugins: [ChartDataLabels, whiteBackgroundPlugin]
+            });
+        }
+
+        /*
+         * -----------------------------------------------------------------------------
+         * 19. GRÁFICA HISTÓRICA DE LUGAR EN LA HABITACIÓN
+         * -----------------------------------------------------------------------------
+         */
         const lugarHabitacionBaseData = {
             labels: [
                 "Al lado de la cama de la habitación",
@@ -1593,16 +1872,19 @@
                 if (itemDate >= fromDate && itemDate <= toDate) {
                     totalFallsInPeriod++;
                     let lugarNormalized = item.lugar.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                    let lugarEspecifico = lugarNormalized.replace(/al lado de la cama de la habitacion|a los pies de la cama de la habitacion|en mitad de la habitacion|puerta del bano de la habitacion|dentro del bano de la habitacion/g, match => {
-                        switch(match) {
-                            case "al lado de la cama de la habitacion": return "Al lado de la cama de la habitación";
-                            case "a los pies de la cama de la habitacion": return "A los pies de la cama de la habitación";
-                            case "en mitad de la habitacion": return "En mitad de la habitación";
-                            case "puerta del bano de la habitacion": return "En la puerta del baño de la habitación";
-                            case "dentro del bano de la habitacion": return "Dentro del baño de la habitación";
-                            default: return match;
+                    let lugarEspecifico = lugarNormalized.replace(
+                        /al lado de la cama de la habitacion|a los pies de la cama de la habitacion|en mitad de la habitacion|puerta del bano de la habitacion|dentro del bano de la habitacion/g,
+                        match => {
+                            switch(match) {
+                                case "al lado de la cama de la habitacion": return "Al lado de la cama de la habitación";
+                                case "a los pies de la cama de la habitacion": return "A los pies de la cama de la habitación";
+                                case "en mitad de la habitacion": return "En mitad de la habitación";
+                                case "puerta del bano de la habitacion": return "En la puerta del baño de la habitación";
+                                case "dentro del bano de la habitacion": return "Dentro del baño de la habitación";
+                                default: return match;
+                            }
                         }
-                    });
+                    );
                     lugarEspecifico = lugarEspecifico.charAt(0).toUpperCase() + lugarEspecifico.slice(1);
                     const cat = lugarHabitacionBaseData.labels.find(l => l === lugarEspecifico);
                     if (cat) {
@@ -1712,6 +1994,11 @@
             });
         }
 
+        /*
+         * -----------------------------------------------------------------------------
+         * 20. GRÁFICA HISTÓRICA DE HORAS DE LAS CAÍDAS
+         * -----------------------------------------------------------------------------
+         */
         let horasChart;
         const horasBaseData = {
             labels: ["8 a 10","10 a 12","12 a 14","14 a 16","16 a 18","18 a 20","20 a 22","22 a 0","0 a 2","2 a 4","4 a 6","6 a 8"],
@@ -1850,148 +2137,11 @@
             });
         }
 
-        let historicalChart; 
-        function renderHistoricalChart() {
-            const chartHistoricoCtx = document.getElementById('chartHistorico').getContext('2d');
-
-            const newPeriods = generateNewPeriods(data);
-            const combinedData = [...historicalData, ...newPeriods];
-            const allPeriods = combinedData;
-
-            const labels = allPeriods.map(d => d.label);
-            const values = allPeriods.map(d => d.value);
-
-            const backgroundColors = assignColors(labels); 
-            const borderColors = backgroundColors.map(c => c.replace('0.6','1'));
-
-            if (historicalChart) {
-                historicalChart.destroy();
-            }
-
-            historicalChart = new Chart(chartHistoricoCtx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Caídas registradas',
-                        data: values,
-                        backgroundColor: backgroundColors,
-                        borderColor: borderColors,
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    animation: {
-                        duration: 2000,
-                        easing: 'easeInOutQuad'
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        title: {
-                            display: true,
-                            text: 'Caídas en un año',
-                            padding: { top: 30, bottom: 10 }
-                        },
-                        datalabels: {
-                            anchor: 'end',
-                            align: 'end',
-                            formatter: function(value) {
-                                return value;
-                            },
-                            font: {
-                                weight: 'bold'
-                            },
-                            color: '#000'
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                },
-                plugins: [ChartDataLabels, whiteBackgroundPlugin]
-            });
-        }
-
-        let consequencesChart;
-        function renderConsequencesChart() {
-            const chartConsecuenciasCtx = document.getElementById('chartConsecuenciasHistorico').getContext('2d');
-
-            const newPeriods = generateNewConsequencesPeriods(data);
-            const combinedPeriods = [...consequencesBaseData.periods, ...newPeriods];
-            const limitedPeriods = combinedPeriods.slice(-5);
-
-            const labels = consequencesBaseData.labels;
-            const allPeriodLabels = limitedPeriods.map(p => p.label);
-            const palette = assignColors(allPeriodLabels);
-
-            const datasets = limitedPeriods.map((period, index) => {
-                const bgColor = palette[index];
-                const borderColor = bgColor.replace('0.6','1');
-                return {
-                    label: period.label,
-                    data: period.data.map(p => parseFloat(p.toFixed(0))),
-                    backgroundColor: bgColor,
-                    borderColor: borderColor,
-                    borderWidth: 1
-                };
-            });
-
-            if (consequencesChart) {
-                consequencesChart.destroy();
-            }
-
-            consequencesChart = new Chart(chartConsecuenciasCtx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: datasets
-                },
-                options: {
-                    responsive: true,
-                    animation: {
-                        duration: 2000,
-                        easing: 'easeInOutQuad'
-                    },
-                    plugins: {
-                        legend: {
-                            display: true
-                        },
-                        title: {
-                            display: true,
-                            text: 'Consecuencias de las caídas (En % del total de caídas)',
-                            padding: { top: 30, bottom: 10 }
-                        },
-                        datalabels: {
-                            anchor: 'end',
-                            align: 'end',
-                            formatter: function(value) {
-                                return value;
-                            },
-                            font: {
-                                weight: 'bold'
-                            },
-                            color: '#000'
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Porcentaje (%)'
-                            }
-                        }
-                    }
-                },
-                plugins: [ChartDataLabels, whiteBackgroundPlugin]
-            });
-        }
-
+        /*
+         * -----------------------------------------------------------------------------
+         * 21. GRÁFICA HISTÓRICA DE LUGAR (GLOBAL)
+         * -----------------------------------------------------------------------------
+         */
         const lugarGlobalBaseData = {
             labels: ["Habitación", "Salas comunes", "Pasillos", "Baños comunes", "Comedor", "Recepción", "Jardín", "Sala terapia", "Capilla", "Otros"],
             periods: [
@@ -2011,6 +2161,11 @@
         };
 
         function normalizeLugarGlobal(lugar) {
+            /*
+             * Mapea cada lugar a una de las categorías definidas:
+             *   "Habitación", "Salas comunes", "Pasillos", "Baños comunes", "Comedor",
+             *   "Recepción", "Jardín", "Sala terapia", "Capilla", "Otros"
+             */
             const lower = lugar.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             if (lower.includes("habitacion")) {
                 return "Habitación";
@@ -2167,6 +2322,11 @@
             });
         }
 
+        /*
+         * -----------------------------------------------------------------------------
+         * 22. BOTONES PARA CAMBIAR DE GRÁFICA HISTÓRICA
+         * -----------------------------------------------------------------------------
+         */
         document.getElementById('btnHistorico').addEventListener('click', function() {
             document.getElementById('chartHistoricoContainer').style.display = 'block';
             document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'none';
@@ -2174,7 +2334,7 @@
             document.getElementById('chartHorasContainer').style.display = 'none';
             document.getElementById('chartLugarGlobalContainer').style.display = 'none';
             setActiveChartSection(this);
-            historicalChart.update(); // Re-lanzar animación
+            historicalChart.update(); // Re-lanzar animación si lo deseas
         });
 
         document.getElementById('btnConsecuenciasHistoricas').addEventListener('click', function() {
@@ -2184,7 +2344,7 @@
             document.getElementById('chartHorasContainer').style.display = 'none';
             document.getElementById('chartLugarGlobalContainer').style.display = 'none';
             setActiveChartSection(this);
-            consequencesChart.update(); // Re-lanzar animación
+            consequencesChart.update(); // Re-lanzar animación si lo deseas
         });
 
         document.getElementById('btnLugarHabitacionHistorico').addEventListener('click', function() {
@@ -2194,7 +2354,7 @@
             document.getElementById('chartHorasContainer').style.display = 'none';
             document.getElementById('chartLugarGlobalContainer').style.display = 'none';
             setActiveChartSection(this);
-            lugarHabitacionChart.update(); // Re-lanzar animación
+            lugarHabitacionChart.update(); // Re-lanzar animación si lo deseas
         });
 
         document.getElementById('btnHorasHistorico').addEventListener('click', function() {
@@ -2204,7 +2364,7 @@
             document.getElementById('chartHorasContainer').style.display = 'block';
             document.getElementById('chartLugarGlobalContainer').style.display = 'none';
             setActiveChartSection(this);
-            horasChart.update(); // Re-lanzar animación
+            horasChart.update(); // Re-lanzar animación si lo deseas
         });
 
         document.getElementById('btnLugarGlobalHistorico').addEventListener('click', function() {
@@ -2214,7 +2374,7 @@
             document.getElementById('chartHorasContainer').style.display = 'none';
             document.getElementById('chartLugarGlobalContainer').style.display = 'block';
             setActiveChartSection(this);
-            lugarGlobalChart.update(); // Re-lanzar animación
+            lugarGlobalChart.update(); // Re-lanzar animación si lo deseas
         });
 
         function setActiveChartSection(activeButton) {
@@ -2223,7 +2383,13 @@
             activeButton.classList.add('active');
         }
 
+        /*
+         * -----------------------------------------------------------------------------
+         * 23. INICIALIZACIÓN GENERAL AL CARGAR LA PÁGINA
+         * -----------------------------------------------------------------------------
+         */
         function initializeChartSections() {
+            // Mostrar sólo la primera gráfica por defecto
             document.getElementById('chartHistoricoContainer').style.display = 'block';
             document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'none';
             document.getElementById('chartLugarHabitacionContainer').style.display = 'none';
@@ -2256,21 +2422,31 @@
         }
 
         window.addEventListener('load', async function() {
+            // 1. Cargar datos remotos
             await fetchRemoteData();
+            // 2. Inicializar selects de filtros
             initializeFilterSelects();
+            // 3. Colocar fechas por defecto (desde el 1 de mayo hasta hoy)
             setDefaultDateFilters();
+            // 4. Filtrar y mostrar datos en la tabla
             filterData();
+            // 5. Renderizar gráfica principal
             updateChart();
+            // 6. Actualizar contadores con datos filtrados
             updateCounters(filteredData);
+            // 7. Botón "Franja" activo por defecto
             document.getElementById('btnFranja').classList.add('active');
+            // 8. Actualizar estado de botones
             updateButtonStates();
+            // 9. Rellenar datalist de residentes
             actualizarDatalistResidentes();
+            // 10. Inicializar tooltips (Bootstrap)
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
             var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
 
-            // Inicialización de las nuevas gráficas con animación
+            // 11. Inicializar gráficas adicionales
             renderHistoricalChart();
             renderConsequencesChart();
             renderLugarHabitacionChart();
