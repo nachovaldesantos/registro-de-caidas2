@@ -1689,13 +1689,13 @@
                 lugarHabitacionChart.destroy();
             }
 
+            // Se unifica la animación con la del gráfico superior
             lugarHabitacionChart = new Chart(chartLugarHabitacionCtx, {
                 type: 'bar',
                 data: {
                     labels: labels,
                     datasets: datasets
                 },
-                // Mismo bloque de animation que la gráfica superior
                 options: {
                     responsive: true,
                     animation: {
@@ -1828,13 +1828,13 @@
                 horasChart.destroy();
             }
 
+            // Animación unificada
             horasChart = new Chart(chartHorasCtx, {
                 type: 'bar',
                 data: {
                     labels: labels,
                     datasets: datasets
                 },
-                // Mismo bloque de animation que la gráfica superior
                 options: {
                     responsive: true,
                     animation: {
@@ -1894,6 +1894,7 @@
                 historicalChart.destroy();
             }
 
+            // Animación unificada
             historicalChart = new Chart(chartHistoricoCtx, {
                 type: 'bar',
                 data: {
@@ -1906,7 +1907,6 @@
                         borderWidth: 1
                     }]
                 },
-                // Mismo bloque de animation que la gráfica superior
                 options: {
                     responsive: true,
                     animation: {
@@ -1972,13 +1972,13 @@
                 consequencesChart.destroy();
             }
 
+            // Animación unificada
             consequencesChart = new Chart(chartConsecuenciasCtx, {
                 type: 'bar',
                 data: {
                     labels: labels,
                     datasets: datasets
                 },
-                // Mismo bloque de animation que la gráfica superior
                 options: {
                     responsive: true,
                     animation: {
@@ -2148,13 +2148,13 @@
                 lugarGlobalChart.destroy();
             }
 
+            // Animación unificada
             lugarGlobalChart = new Chart(chartLugarGlobalCtx, {
                 type: 'bar',
                 data: {
                     labels: labels,
                     datasets: datasets
                 },
-                // Mismo bloque de animation que la gráfica superior
                 options: {
                     responsive: true,
                     animation: {
@@ -2313,7 +2313,7 @@
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
 
-            // Inicialización de las nuevas gráficas con la misma animación que arriba
+            // Inicialización de las nuevas gráficas con la misma animación
             renderHistoricalChart();
             renderConsequencesChart();
             renderLugarHabitacionChart();
