@@ -137,7 +137,7 @@
                         </div>
                         <!-- Botón para Borrar Filtros -->
                         <div class="col-md-4 d-flex align-items-end">
-                            <button id="clearFiltersBtn" class="btn btn-warning">Borrar Filtros</button>
+                            <button id="clearFiltersBtn" class="btn btn-warning me-2">Borrar Filtros</button>
                         </div>
                     </div>
 
@@ -185,6 +185,9 @@
                 </div>
                 <div class="card-body text-end">
                     <button id="exportExcel" class="btn btn-success me-2">Exportar a Excel</button>
+                    <!-- Nuevo botón para exportar datos filtrados -->
+                    <button id="exportFilteredExcel" class="btn btn-success me-2">Exportar Filtrados a Excel</button>
+                    
                     <button id="importExcelBtn" class="btn btn-info me-2" data-bs-toggle="tooltip" data-bs-placement="top" title="Formato de fecha esperado: d/m/yyyy o yyyy-mm-dd">Importar desde Excel</button>
                     <input type="file" id="importExcelInput" accept=".xlsx, .xls" style="display: none;">
                     <button id="deleteAll" class="btn btn-danger me-2">Eliminar Todos los Registros</button>
@@ -341,6 +344,10 @@
                     <h5>Gráficas Adicionales</h5>
                 </div>
                 <div class="card-body">
+                    <!-- Botón para refrescar las gráficas adicionales -->
+                    <div class="text-end mb-3">
+                        <button class="btn btn-primary" id="refreshLowerChartsBtn">Actualizar Gráficas Adicionales</button>
+                    </div>
                     <div class="chart-selector text-center mb-3">
                         <button class="btn btn-outline-primary me-2" id="btnHistorico">Caídas Históricas</button>
                         <button class="btn btn-outline-primary me-2" id="btnConsecuenciasHistoricas">Consecuencias Históricas</button>
@@ -863,6 +870,10 @@
             },
             options: {
                 responsive: true,
+                animation: {
+                    duration: 2000,
+                    easing: 'easeInOutQuad'
+                },
                 plugins: {
                     legend: {
                         display: false
@@ -1172,6 +1183,19 @@
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Datos");
             XLSX.writeFile(workbook, "RegistroCaidas.xlsx");
+        });
+
+        // Nuevo evento para exportar datos FILTRADOS a Excel
+        document.getElementById('exportFilteredExcel').addEventListener('click', () => {
+            if (filteredData.length === 0) {
+                alert('No hay datos filtrados para exportar.');
+                return;
+            }
+            const exportData = filteredData.map(({id, ...rest}) => rest);
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "DatosFiltrados");
+            XLSX.writeFile(workbook, "RegistroCaidasFiltrados.xlsx");
         });
 
         async function fetchRemoteData() {
@@ -2166,6 +2190,20 @@
                 plugins: [ChartDataLabels, whiteBackgroundPlugin]
             });
         }
+
+        // Botón para refrescar las gráficas adicionales con datos nuevos
+        function refreshLowerCharts() {
+            renderHistoricalChart();
+            renderConsequencesChart();
+            renderLugarHabitacionChart();
+            renderHorasChart();
+            renderLugarGlobalChart();
+        }
+
+        document.getElementById('refreshLowerChartsBtn').addEventListener('click', () => {
+            refreshLowerCharts();
+            alert("Gráficas adicionales actualizadas con los datos más recientes.");
+        });
 
         document.getElementById('btnHistorico').addEventListener('click', function() {
             document.getElementById('chartHistoricoContainer').style.display = 'block';
