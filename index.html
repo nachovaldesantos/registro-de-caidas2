@@ -201,14 +201,17 @@
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <h6>Total de Caídas Registradas: <span id="totalFalls">0</span></h6>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <h6>Caídas Visibles: <span id="visibleFalls">0</span></h6>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <h6>Residentes con al menos una caída: <span id="distinctResidents">0</span></h6>
+                        </div>
+                        <div class="col-md-3">
+                            <h6>Proyección anual (al ritmo actual): <span id="projectedFalls">0</span></h6>
                         </div>
                     </div>
                 </div>
@@ -343,6 +346,8 @@
                         <button class="btn btn-outline-primary me-2" id="btnConsecuenciasHistoricas">Consecuencias Históricas</button>
                         <button class="btn btn-outline-primary me-2" id="btnLugarHabitacionHistorico">Lugar de las Caídas en la Habitación</button>
                         <button class="btn btn-outline-primary me-2" id="btnHorasHistorico">Horas de las Caídas</button>
+                        <!-- Nuevo botón para la nueva gráfica -->
+                        <button class="btn btn-outline-primary me-2" id="btnLugarGlobalHistorico">Lugar de las caídas (Global)</button>
                     </div>
                     <div id="chartHistoricoContainer" class="chart-container">
                         <canvas id="chartHistorico"></canvas>
@@ -352,7 +357,6 @@
                         <canvas id="chartConsecuenciasHistorico"></canvas>
                         <button class="btn btn-secondary mt-3 download-chart-button" data-chart="chartConsecuenciasHistorico">Descargar Gráfica de Consecuencias</button>
                     </div>
-                    <!-- NUEVAS GRÁFICAS -->
                     <div id="chartLugarHabitacionContainer" class="chart-container" style="display: none;">
                         <canvas id="chartLugarHabitacion"></canvas>
                         <button class="btn btn-secondary mt-3 download-chart-button" data-chart="chartLugarHabitacion">Descargar Gráfica Lugar Habitación</button>
@@ -360,6 +364,11 @@
                     <div id="chartHorasContainer" class="chart-container" style="display: none;">
                         <canvas id="chartHoras"></canvas>
                         <button class="btn btn-secondary mt-3 download-chart-button" data-chart="chartHoras">Descargar Gráfica Horas Caídas</button>
+                    </div>
+                    <!-- Nueva gráfica Lugar Global -->
+                    <div id="chartLugarGlobalContainer" class="chart-container" style="display: none;">
+                        <canvas id="chartLugarGlobal"></canvas>
+                        <button class="btn btn-secondary mt-3 download-chart-button" data-chart="chartLugarGlobal">Descargar Gráfica Lugar Global</button>
                     </div>
                 </div>
             </div>
@@ -608,6 +617,7 @@
         const totalFallsElement = document.getElementById('totalFalls');
         const visibleFallsElement = document.getElementById('visibleFalls');
         const distinctResidentsElement = document.getElementById('distinctResidents');
+        const projectedFallsElement = document.getElementById('projectedFalls');
 
         const periodo1Btn = document.getElementById('periodo1Btn');
         const periodo2Btn = document.getElementById('periodo2Btn');
@@ -615,6 +625,7 @@
         let actionStack = [];
         let currentChartType = 'franja';
         let filteredData = [...data]; 
+        let baseStartDate; // Almacena la fecha del último 1 de mayo
 
         function filterData() {
             const selectedFranja = filterFranjaSelect.value;
@@ -804,9 +815,8 @@
         function getCaidasPorLugarHabitacion(dataSet) {
             const lugarHabitacionCount = {};
             dataSet.forEach(item => {
-                if (item.lugar.toLowerCase().includes("habitación")) {
+                if (item.lugar.toLowerCase().includes("habitación") || item.lugar.toLowerCase().includes("habitacion")) {
                     let lugarNormalized = item.lugar.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                    // Ajuste final: Cambiamos el retorno del case puerta del bano de la habitacion
                     let lugarEspecifico = lugarNormalized.replace(/al lado de la cama de la habitacion|a los pies de la cama de la habitacion|en mitad de la habitacion|puerta del bano de la habitacion|dentro del bano de la habitacion/g, match => {
                         switch(match) {
                             case "al lado de la cama de la habitacion": return "Al lado de la cama de la habitación";
@@ -1055,6 +1065,17 @@
 
             const distinctResidents = new Set(fData.map(item => item.residente)).size;
             distinctResidentsElement.innerText = distinctResidents;
+
+            // Cálculo de la proyección anual de caídas
+            const today = new Date();
+            const fallsSinceMayFirst = data.filter(d => {
+                const dDate = dateStrToDate(d.fecha);
+                return dDate >= baseStartDate && dDate <= today;
+            }).length;
+
+            const dayCount = Math.floor((today - baseStartDate)/(1000*60*60*24)) + 1; 
+            const projected = dayCount > 0 ? Math.round((fallsSinceMayFirst/dayCount)*365) : 0;
+            projectedFallsElement.innerText = projected;
         }
 
         filterFranjaSelect.addEventListener('change', filterData);
@@ -1099,6 +1120,8 @@
             filterToDate.value = formatDate(today);
             filterFromDateCompare.value = "";
             filterToDateCompare.value = "";
+
+            baseStartDate = mayFirst; // Guardamos la fecha base (1 de mayo) para la proyección
         }
 
         function setPeriodo2() {
@@ -1129,6 +1152,8 @@
             filterToDate.value = formatDate(toDate1);
             filterFromDateCompare.value = formatDate(fromDate2);
             filterToDateCompare.value = formatDate(toDate2);
+
+            baseStartDate = fromDate1; // Guardamos la nueva fecha base de mayo
         }
 
         function setActivePeriodoButton(activeButton) {
@@ -1618,7 +1643,6 @@
 
             const newPeriods = generateNewLugarHabitacionPeriods(data);
             const combinedPeriods = [...lugarHabitacionBaseData.periods, ...newPeriods];
-            // Limitar a los últimos 5 periodos
             const limitedPeriods = combinedPeriods.slice(-5);
 
             const labels = lugarHabitacionBaseData.labels;
@@ -1649,6 +1673,10 @@
                 },
                 options: {
                     responsive: true,
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutQuad'
+                    },
                     plugins: {
                         legend: {
                             display: true
@@ -1753,7 +1781,6 @@
 
             const newPeriods = generateNewHorasPeriods(data);
             const combinedPeriods = [...horasBaseData.periods, ...newPeriods];
-            // Limitar a los últimos 5 periodos
             const limitedPeriods = combinedPeriods.slice(-5);
 
             const labels = horasBaseData.labels;
@@ -1784,6 +1811,10 @@
                 },
                 options: {
                     responsive: true,
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutQuad'
+                    },
                     plugins: {
                         legend: {
                             display: true
@@ -1851,6 +1882,10 @@
                 },
                 options: {
                     responsive: true,
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutQuad'
+                    },
                     plugins: {
                         legend: {
                             display: false
@@ -1918,6 +1953,10 @@
                 },
                 options: {
                     responsive: true,
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutQuad'
+                    },
                     plugins: {
                         legend: {
                             display: true
@@ -1953,12 +1992,189 @@
             });
         }
 
+        const lugarGlobalBaseData = {
+            labels: ["Habitación", "Salas comunes", "Pasillos", "Baños comunes", "Comedor", "Recepción", "Jardín", "Sala terapia", "Capilla", "Otros"],
+            periods: [
+                {
+                    label: "2018-2019",
+                    data: [66,13,4,2,3,2,1,3,0,6]
+                },
+                {
+                    label: "2021-2022(70 residentes)",
+                    data: [73,11,8,0,0,3,0,1,0,1]
+                },
+                {
+                    label: "2022-2023",
+                    data: [64,18,6,0,0,2,1,4,0,4]
+                }
+            ]
+        };
+
+        function normalizeLugarGlobal(lugar) {
+            const lower = lugar.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            if (lower.includes("habitacion")) {
+                return "Habitación";
+            }
+            if (lower.includes("salon de la planta primera") || lower.includes("salon de la planta segunda") || lower.includes("sala comun planta 3") || lower.includes("planta primera")) {
+                return "Salas comunes";
+            }
+            if (lower.includes("pasillo")) {
+                return "Pasillos";
+            }
+            if (lower.includes("dentro del baño geriatrico") || lower.includes("dentro del bano geriatrico")) {
+                return "Baños comunes";
+            }
+            if (lower.includes("comedor")) {
+                return "Comedor";
+            }
+            if (lower.includes("recepcion")) {
+                return "Recepción";
+            }
+            if (lower.includes("jardin") || lower.includes("terraza")) {
+                return "Jardín";
+            }
+            if (lower.includes("sala de actividades")) {
+                return "Sala terapia";
+            }
+            if (lower.includes("capilla")) {
+                return "Capilla";
+            }
+            if (lower.includes("salon fondo planta") || lower.includes("dentro del ascensor")) {
+                return "Otros";
+            }
+            return "Otros";
+        }
+
+        function getLugarGlobalCountsInRange(dataSet, fromDateStr, toDateStr) {
+            const fromDate = dateStrToDate(parseFecha(fromDateStr));
+            const toDate = dateStrToDate(parseFecha(toDateStr));
+            const categories = lugarGlobalBaseData.labels;
+            let total = 0;
+            const counts = {};
+            categories.forEach(c => counts[c] = 0);
+
+            dataSet.forEach(item => {
+                const itemDate = dateStrToDate(item.fecha);
+                if (itemDate >= fromDate && itemDate <= toDate) {
+                    total++;
+                    const cat = normalizeLugarGlobal(item.lugar);
+                    if (counts[cat] !== undefined) {
+                        counts[cat]++;
+                    } else {
+                        counts["Otros"]++;
+                    }
+                }
+            });
+
+            const percentages = categories.map(cat => {
+                return total > 0 ? Math.round((counts[cat] / total)*100) : 0;
+            });
+
+            return percentages;
+        }
+
+        function generateNewLugarGlobalPeriods(dataSet) {
+            const startYear = 2023;
+            const endYear = new Date().getFullYear() + 1;
+            const newPeriods = [];
+            for (let year = startYear; year <= endYear; year++) {
+                const fromDateStr = `1/5/${year}`;
+                const toDateStr = `30/4/${year+1}`;
+                const percentages = getLugarGlobalCountsInRange(dataSet, fromDateStr, toDateStr);
+                const sumAll = percentages.reduce((a,b)=>a+b,0);
+                if (sumAll > 0) {
+                    newPeriods.push({
+                        label: `${year}-${year+1}`,
+                        data: percentages
+                    });
+                }
+            }
+            return newPeriods;
+        }
+
+        let lugarGlobalChart;
+        function renderLugarGlobalChart() {
+            const chartLugarGlobalCtx = document.getElementById('chartLugarGlobal').getContext('2d');
+
+            const newPeriods = generateNewLugarGlobalPeriods(data);
+            const combinedPeriods = [...lugarGlobalBaseData.periods, ...newPeriods];
+            const limitedPeriods = combinedPeriods.slice(-5);
+
+            const labels = lugarGlobalBaseData.labels;
+            const allPeriodLabels = limitedPeriods.map(p => p.label);
+            const palette = assignColors(allPeriodLabels);
+
+            const datasets = limitedPeriods.map((period, index) => {
+                const bgColor = palette[index];
+                const borderColor = bgColor.replace('0.6','1');
+                return {
+                    label: period.label,
+                    data: period.data,
+                    backgroundColor: bgColor,
+                    borderColor: borderColor,
+                    borderWidth: 1
+                };
+            });
+
+            if (lugarGlobalChart) {
+                lugarGlobalChart.destroy();
+            }
+
+            lugarGlobalChart = new Chart(chartLugarGlobalCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutQuad'
+                    },
+                    plugins: {
+                        legend: {
+                            display: true
+                        },
+                        title: {
+                            display: true,
+                            text: '(%) Lugar de las caídas',
+                            padding: { top: 30, bottom: 10 }
+                        },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'end',
+                            formatter: function(value) {
+                                return value + '%';
+                            },
+                            font: {
+                                weight: 'bold'
+                            },
+                            color: '#000'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Porcentaje (%)'
+                            }
+                        }
+                    }
+                },
+                plugins: [ChartDataLabels, whiteBackgroundPlugin]
+            });
+        }
+
         document.getElementById('btnHistorico').addEventListener('click', function() {
             document.getElementById('chartHistoricoContainer').style.display = 'block';
             document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'none';
             document.getElementById('chartLugarHabitacionContainer').style.display = 'none';
             document.getElementById('chartHorasContainer').style.display = 'none';
+            document.getElementById('chartLugarGlobalContainer').style.display = 'none';
             setActiveChartSection(this);
+            historicalChart.update(); // Re-lanzar animación
         });
 
         document.getElementById('btnConsecuenciasHistoricas').addEventListener('click', function() {
@@ -1966,7 +2182,9 @@
             document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'block';
             document.getElementById('chartLugarHabitacionContainer').style.display = 'none';
             document.getElementById('chartHorasContainer').style.display = 'none';
+            document.getElementById('chartLugarGlobalContainer').style.display = 'none';
             setActiveChartSection(this);
+            consequencesChart.update(); // Re-lanzar animación
         });
 
         document.getElementById('btnLugarHabitacionHistorico').addEventListener('click', function() {
@@ -1974,7 +2192,9 @@
             document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'none';
             document.getElementById('chartLugarHabitacionContainer').style.display = 'block';
             document.getElementById('chartHorasContainer').style.display = 'none';
+            document.getElementById('chartLugarGlobalContainer').style.display = 'none';
             setActiveChartSection(this);
+            lugarHabitacionChart.update(); // Re-lanzar animación
         });
 
         document.getElementById('btnHorasHistorico').addEventListener('click', function() {
@@ -1982,7 +2202,19 @@
             document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'none';
             document.getElementById('chartLugarHabitacionContainer').style.display = 'none';
             document.getElementById('chartHorasContainer').style.display = 'block';
+            document.getElementById('chartLugarGlobalContainer').style.display = 'none';
             setActiveChartSection(this);
+            horasChart.update(); // Re-lanzar animación
+        });
+
+        document.getElementById('btnLugarGlobalHistorico').addEventListener('click', function() {
+            document.getElementById('chartHistoricoContainer').style.display = 'none';
+            document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'none';
+            document.getElementById('chartLugarHabitacionContainer').style.display = 'none';
+            document.getElementById('chartHorasContainer').style.display = 'none';
+            document.getElementById('chartLugarGlobalContainer').style.display = 'block';
+            setActiveChartSection(this);
+            lugarGlobalChart.update(); // Re-lanzar animación
         });
 
         function setActiveChartSection(activeButton) {
@@ -1996,6 +2228,7 @@
             document.getElementById('chartConsecuenciasHistoricoContainer').style.display = 'none';
             document.getElementById('chartLugarHabitacionContainer').style.display = 'none';
             document.getElementById('chartHorasContainer').style.display = 'none';
+            document.getElementById('chartLugarGlobalContainer').style.display = 'none';
             setActiveChartSection(document.getElementById('btnHistorico'));
         }
 
@@ -2019,6 +2252,7 @@
             filterToDate.value = formatDate(today);
             filterFromDateCompare.value = "";
             filterToDateCompare.value = "";
+            baseStartDate = mayFirst; // Guardamos la fecha base para el cálculo de proyección
         }
 
         window.addEventListener('load', async function() {
@@ -2036,11 +2270,12 @@
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
 
-            // Inicialización de las nuevas gráficas
+            // Inicialización de las nuevas gráficas con animación
             renderHistoricalChart();
             renderConsequencesChart();
             renderLugarHabitacionChart();
             renderHorasChart();
+            renderLugarGlobalChart();
             initializeChartSections();
         });
     </script>
