@@ -93,7 +93,7 @@
                 </div>
             </div>
 
-            <!-- Gráfica y Botón de Descarga -->
+            <!-- Gráfica Superior y Botón de Descarga -->
             <div class="card">
                 <div class="card-header">
                     <h5>Visualización de Datos</h5>
@@ -1695,6 +1695,7 @@
                     labels: labels,
                     datasets: datasets
                 },
+                // Mismo bloque de animation que la gráfica superior
                 options: {
                     responsive: true,
                     animation: {
@@ -1775,7 +1776,7 @@
             });
 
             const percentages = categories.map(cat => {
-                return total > 0 ? Math.round((counts[cat] / total) * 100) : 0;
+                return total > 0 ? Math.round((counts[cat] / total)*100) : 0;
             });
 
             return percentages;
@@ -1833,6 +1834,7 @@
                     labels: labels,
                     datasets: datasets
                 },
+                // Mismo bloque de animation que la gráfica superior
                 options: {
                     responsive: true,
                     animation: {
@@ -1904,6 +1906,7 @@
                         borderWidth: 1
                     }]
                 },
+                // Mismo bloque de animation que la gráfica superior
                 options: {
                     responsive: true,
                     animation: {
@@ -1975,6 +1978,7 @@
                     labels: labels,
                     datasets: datasets
                 },
+                // Mismo bloque de animation que la gráfica superior
                 options: {
                     responsive: true,
                     animation: {
@@ -2150,6 +2154,7 @@
                     labels: labels,
                     datasets: datasets
                 },
+                // Mismo bloque de animation que la gráfica superior
                 options: {
                     responsive: true,
                     animation: {
@@ -2308,7 +2313,7 @@
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
 
-            // Inicialización de las nuevas gráficas con animación
+            // Inicialización de las nuevas gráficas con la misma animación que arriba
             renderHistoricalChart();
             renderConsequencesChart();
             renderLugarHabitacionChart();
