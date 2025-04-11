@@ -1325,6 +1325,7 @@
 
         document.getElementById('clearFiltersBtn').addEventListener('click', clearAllFilters);
 
+        // MODIFICACIÓN: EVITAR FECHAS POSTERIORES A HOY
         document.getElementById('registroCaidas').addEventListener('submit', async function(e) {
             e.preventDefault();
             let residente = document.getElementById('nombreResidente').value.trim();
@@ -1342,6 +1343,14 @@
             const fechaFormateada = parseFecha(fecha);
             if (!fechaFormateada) {
                 alert('Por favor, ingresa una fecha válida.');
+                return;
+            }
+
+            // Conversion a objeto Date para validar que no sea posterior a hoy
+            const hoy = new Date();
+            const fechaDate = dateStrToDate(fechaFormateada);
+            if (fechaDate > hoy) {
+                alert('No se puede registrar una caída con una fecha posterior a la actual. Por favor, corrige la fecha.');
                 return;
             }
 
